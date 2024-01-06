@@ -167,7 +167,7 @@ region n:
 +-----------------+
 | Buffers         |
 +-----------------+
-| pktmbufs or     |
+| fgenbufs or     |
 | raw buffers     |
 +-----------------+
 

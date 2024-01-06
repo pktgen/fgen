@@ -39,4 +39,4 @@ pktdev
 This is a higher level API that allows you to interact with a number of underlying
 devices such as rings and AF_XDP sockets. It has builtin mempool management and
 uses the xskdev APIs to create and manage logical ports. The pktdev API uses the
-``fgenbuf_t`` structure defined in the :ref:`pktmbuf library <Pktmbuf_Library>`.
+``fgenbuf_t`` structure defined in the :ref:`fgenbuf library <Pktmbuf_Library>`.

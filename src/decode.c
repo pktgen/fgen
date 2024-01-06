@@ -10,6 +10,7 @@
 #include <ctype.h>
 
 #include <fgen_common.h>
+#include <fgen_log.h>
 #include <net/fgen_ether.h>
 #include <net/fgen_ip.h>
 #include <net/fgen_udp.h>

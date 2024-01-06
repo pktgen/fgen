@@ -78,14 +78,14 @@ To use the library for, e.g. IPsec ESP Tunnel mode encryption with AES128-GCM, s
       if (job->status != STS_COMPLETED)
          ... job failed ...
 
-The FGEN pktmbuf can be manipulated to insert the outer IPv4 header, ESP header, IV, and append the
+The FGEN fgenbuf can be manipulated to insert the outer IPv4 header, ESP header, IV, and append the
 ESP trailer and ICV.
 
 .. code-block:: C
 
-   neweth = (struct ether_header *)pktmbuf_prepend(m, 20 + 8 + 8 /* IP hdr, ESP hdr, IV */);
+   neweth = (struct ether_header *)fgenbuf_prepend(m, 20 + 8 + 8 /* IP hdr, ESP hdr, IV */);
 
-   pad = pktmbuf_append(m, pad_len + 2 + 16 /* padding, pad length, next header, ICV */);
+   pad = fgenbuf_append(m, pad_len + 2 + 16 /* padding, pad length, next header, ICV */);
    ... populate padding, pad length, next header ...
 
    ... encrypt/authenticate payload ...

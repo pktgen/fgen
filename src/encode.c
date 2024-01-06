@@ -7,6 +7,8 @@
 #include <netinet/in.h>        // for ntohs, htonl, htons
 
 #include <fgen_common.h>
+#include <fgen_log.h>
+#include <fgen_strings.h>
 #include <net/fgen_ether.h>
 #include <net/fgen_ip.h>
 #include <net/fgen_udp.h>
@@ -783,10 +785,8 @@ _encode_frame(fgen_t *fg, frame_t *f)
     if (next_layer(fg, f, 0) < 0)
         goto leave;
 
-    if (fg->flags & FGEN_DUMP_DATA) {
+    if (fg->flags & FGEN_DUMP_DATA)
         fgen_print_frame(NULL, f);
-        fgen_hexdump(NULL, NULL, f->data, f->data_len);
-    }
 
 leave:
     free(text);

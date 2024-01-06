@@ -18,7 +18,7 @@ Programmer's Guide
     idlemgr
     mempool_lib
     msgchan
-    pktmbuf_lib
+    fgenbuf_lib
     ring_lib
     xskdev_buffer_mgmt
     glossary

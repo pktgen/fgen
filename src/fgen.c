@@ -8,6 +8,7 @@
 
 #include <fgen_common.h>
 #include <fgen_log.h>
+#include <fgen_strings.h>
 
 #include "fgen.h"
 
@@ -83,82 +84,6 @@ fgen_add_frame(fgen_t *fg, const char *name, const char *fstr)
 
     return fgen_add_frame_at(fg, fg->nb_frames, name, fstr);
 }
-
-#if 0
-static __fgen_always_inline void
-_prefetch_mbuf_data(fgenbuf_t *m, uint32_t hdr_len)
-{
-    uint8_t *pkt_data = pktmbuf_mtod(m, uint8_t *);
-
-    fgen_prefetch0_write(pkt_data);
-    if (hdr_len > FGEN_CACHE_LINE_SIZE)
-        fgen_prefetch0_write(pkt_data + FGEN_CACHE_LINE_SIZE);
-}
-
-int
-fgen_alloc(fgen_t *fg, int low, int high, fgenbuf_t **mbufs, uint32_t nb_pkts)
-{
-    frame_t *f;
-    void *pkt_data;
-    int pkt_len, begin;
-    uint64_t tsc;
-
-    if (unlikely(fg == NULL))
-        FGEN_ERR_RET("fgen_t pointer is NULL\n");
-
-    if (unlikely(mbufs == NULL))
-        FGEN_ERR_RET("pktmbuf list is NULL\n");
-
-    if (low < 0)
-        low = 0;
-    if (high >= fg->nb_frames)
-        high = fg->nb_frames - 1;
-    if (low > high)
-        low = high;
-    begin = low;
-
-    uint32_t prefetch = FGEN_MIN(nb_pkts, 8U);
-
-    tsc = fgen_rdtsc();
-
-    for (uint32_t i = 0; i < prefetch; i++)
-        fgen_prefetch0_write(pktmbuf_mtod(mbufs[i], char *));
-
-    for (uint32_t i = 0; i < nb_pkts; i++) {
-        fgenbuf_t *m = mbufs[i];
-
-        if ((i + prefetch) < nb_pkts)
-            fgen_prefetch0_write(pktmbuf_mtod(mbufs[i + prefetch], char *));
-
-        f = &fg->frames[low++];
-        if (low >= high)
-            low = begin;
-
-        pkt_data = fgen_mtod(f, void *);
-        pkt_len  = fgen_data_len(f);
-
-        memcpy(pktmbuf_mtod(m, void *), pkt_data, pkt_len);
-        pktmbuf_data_len(m) = pkt_len;
-
-        /* increment tsc by one cycle for each packet, just to have different values in each. */
-        if (f->tsc_off)
-            *pktmbuf_mtod_offset(m, uint64_t *, f->tsc_off) = tsc++;
-    }
-
-    return 0;
-}
-
-int
-fgen_free(fgen_t *fg, fgenbuf_t **mbufs, uint32_t nb_pkts)
-{
-    if (!fg || !mbufs || nb_pkts <= 0)
-        FGEN_ERR_RET("Invalid arguments\n");
-
-    pktmbuf_free_bulk(mbufs, nb_pkts);
-
-    return 0;
-}
-#endif
 
 fgen_t *
 fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags)

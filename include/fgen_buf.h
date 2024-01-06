@@ -11,7 +11,7 @@
 #ifndef _FGEN_BUF_H_
 #define _FGEN_BUF_H_
 
-#include <fgen_common.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

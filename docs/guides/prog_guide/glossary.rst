@@ -22,7 +22,7 @@ Core
    hyperthreading.
 
 Core Components
-   A set of libraries provided by the FGEN, ring, mempool, pktmbuf and so on.
+   A set of libraries provided by the FGEN, ring, mempool, fgenbuf and so on.
 
 CPU
    Central Processing Unit
@@ -108,10 +108,10 @@ PCI
 PHY
    An abbreviation for the physical layer of the OSI model.
 
-pktmbuf
-   A pktmbuf is a data structure used internally to carry messages (mainly
+fgenbuf
+   A fgenbuf is a data structure used internally to carry messages (mainly
    network packets).  The name is derived from BSD stacks.  To understand the
-   concepts of packet buffers or pktmbuf, refer to *TCP/IP Illustrated, Volume 2:
+   concepts of packet buffers or fgenbuf, refer to *TCP/IP Illustrated, Volume 2:
    The Implementation*.
 
 PMD

@@ -6,8 +6,8 @@
 #include <execinfo.h>        // for backtrace, backtrace_symbols
 #include <stdarg.h>          // for va_list, va_end, va_start
 #include <stdlib.h>          // for abort, exit, free
+#include <fgen_strings.h>
 #include <fgen_log.h>
-//#include <fgen_strings.h>
 
 #define MAX_LOG_BUF_SIZE 1024 /** The max size of internal buffers */
 
@@ -110,7 +110,7 @@ fgen_print(const char *format, ...)
     int ret;
 
     va_start(ap, format);
-    ret = tty_vprintf(format, ap);
+    ret = vprintf(format, ap);
     va_end(ap);
 
     return ret;

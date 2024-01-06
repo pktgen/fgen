@@ -71,8 +71,8 @@ The API headers are grouped by topic:
   [system]             (@ref fgen_system.h),
   [tty]                (@ref fgen_tty.h)
 
-- **pktmbuf**:
-  [pktmbuf]            (@ref pktmbuf.h),
+- **fgenbuf**:
+  [fgenbuf]            (@ref fgenbuf.h),
   [txbuff]             (@ref txbuff.h)
 
 - **usrlibs**:

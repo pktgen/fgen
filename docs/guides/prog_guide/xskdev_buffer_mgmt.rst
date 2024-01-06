@@ -7,7 +7,7 @@ xskdev Buffer Management
 ==========================
 The goal of the xskdev buffer management API is to make sure that external applications that want
 to use the xskdev API with their own buffer manager can do so without having to use the predefined
-pktmbuf.
+fgenbuf.
 
 This API is enabled through the use of a flag in the lport configuration structure (lport_cfg_t).
 
@@ -146,7 +146,7 @@ A few examples of how the buffer management callbacks are invoked is shown below
     * @param xi
     *   The void * type of xskdev_info_t structure
     * @param bufs
-    *   The list or vector or pktmbufs structures to send on the interface.
+    *   The list or vector or fgenbufs structures to send on the interface.
     * @param nb_pkts
     *   The number of fgenbuf_t pointers in the list or vector bufs
     * @return
@@ -164,7 +164,7 @@ A few examples of how the buffer management callbacks are invoked is shown below
     * @param xi
     *   The void * type of xskdev_info_t structure
     * @param bufs
-    *   The list or vector or pktmbufs structures to send on the interface.
+    *   The list or vector or fgenbufs structures to send on the interface.
     * @param nb_pkts
     *   The number of fgenbuf_t pointers in the list or vector bufs
     * @return

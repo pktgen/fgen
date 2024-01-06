@@ -6,6 +6,8 @@ headers = files(
     'fgen_buf.h',
     'fgen_byteorder.h',
     'fgen_common.h',
+    'fgen_cycles.h',
+    'fgen_strings.h',
     'fgen_version.h',
     )
 net_hdrs = files(

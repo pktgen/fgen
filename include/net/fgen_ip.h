@@ -196,8 +196,8 @@ fgen_raw_cksum(const void *buf, size_t len)
 /**
  * Compute the raw (non complemented) checksum of a packet.
  *
- * @param m
- *   The pointer to the mbuf.
+ * @param buf
+ *   The pointer to the buf.
  * @param off
  *   The offset in bytes to start the checksum.
  * @param len
@@ -206,9 +206,9 @@ fgen_raw_cksum(const void *buf, size_t len)
  *   checksum value
  */
 static inline uint16_t
-fgen_raw_cksum_mbuf(const char *pkt, uint32_t off, uint32_t len)
+fgen_raw_cksum_buf(const char *buf, uint32_t off __fgen_unused, uint32_t len)
 {
-    return fgen_raw_cksum(pkt, len);
+    return fgen_raw_cksum(buf, len);
 }
 
 /**
@@ -242,13 +242,11 @@ fgen_ipv4_cksum(const struct fgen_ipv4_hdr *ipv4_hdr)
  *
  * @param ipv4_hdr
  *   The pointer to the contiguous IPv4 header.
- * @param ol_flags
- *   The ol_flags of the associated mbuf.
  * @return
  *   The non-complemented checksum to set in the L4 header.
  */
 static inline uint16_t
-fgen_ipv4_phdr_cksum(const struct fgen_ipv4_hdr *ipv4_hdr, uint64_t ol_flags)
+fgen_ipv4_phdr_cksum(const struct fgen_ipv4_hdr *ipv4_hdr)
 {
     struct ipv4_psd_header {
         uint32_t src_addr; /* IP address of source host. */
@@ -264,12 +262,8 @@ fgen_ipv4_phdr_cksum(const struct fgen_ipv4_hdr *ipv4_hdr, uint64_t ol_flags)
     psd_hdr.zero     = 0;
     psd_hdr.proto    = ipv4_hdr->next_proto_id;
 
-    if (ol_flags & FGEN_MBUF_F_TX_TCP_SEG)
-        psd_hdr.len = 0;
-    else {
-        l3_len      = be16toh(ipv4_hdr->total_length);
-        psd_hdr.len = htobe16((uint16_t)(l3_len - fgen_ipv4_hdr_len(ipv4_hdr)));
-    }
+    l3_len      = be16toh(ipv4_hdr->total_length);
+    psd_hdr.len = htobe16((uint16_t)(l3_len - fgen_ipv4_hdr_len(ipv4_hdr)));
 
     return fgen_raw_cksum(&psd_hdr, sizeof(psd_hdr));
 }
@@ -302,7 +296,7 @@ __ipv4_udptcp_cksum(const struct fgen_ipv4_hdr *ipv4_hdr, const void *l4_hdr)
     l4_len = l3_len - ip_hdr_len;
 
     cksum = fgen_raw_cksum(l4_hdr, l4_len);
-    cksum += fgen_ipv4_phdr_cksum(ipv4_hdr, 0);
+    cksum += fgen_ipv4_phdr_cksum(ipv4_hdr);
 
     cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
 

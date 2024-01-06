@@ -36,7 +36,7 @@ INPUT                   = @TOPDIR@/doc/api/doxy-api-index.md \
                           @TOPDIR@/lib/core/mmap \
                           @TOPDIR@/lib/core/osal \
                           @TOPDIR@/lib/core/pktdev \
-                          @TOPDIR@/lib/core/pktmbuf \
+                          @TOPDIR@/lib/core/fgenbuf \
                           @TOPDIR@/lib/core/pmds/net/af_xdp \
                           @TOPDIR@/lib/core/pmds/net/af_packet \
                           @TOPDIR@/lib/core/pmds/net/memif \
@@ -92,7 +92,7 @@ FILE_PATTERNS           = acl*.h \
                           node_*.h \
                           pkt_cls_priv.h \
                           pktdev*.h \
-                          pktmbuf*.h \
+                          fgenbuf*.h \
                           pmd*.h \
                           private_fib6.h \
                           ring*.h \

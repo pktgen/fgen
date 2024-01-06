@@ -6,13 +6,13 @@
 Pktmbuf Library
 ===============
 
-The pktmbuf library provides the ability to allocate and free buffers (pktmbufs)
+The fgenbuf library provides the ability to allocate and free buffers (fgenbufs)
 that may be used by the FGEN application to store message buffers.
 The message buffers are stored in a mempool, using the :ref:`Mempool Library <Mempool_Library>`.
 
-A pktmbuf struct generally carries network packet buffers, but it can actually
+A fgenbuf struct generally carries network packet buffers, but it can actually
 be any data (control data, events, ...).
-The pktmbuf header structure is kept as small as possible and currently uses
+The fgenbuf header structure is kept as small as possible and currently uses
 just one cache line, with the most frequently used fields being in that cache line.
 
 Design of Packet Buffers
@@ -25,16 +25,16 @@ The advantage of this method is that it only needs one operation to allocate/fre
 The metadata contains control information such as message type, length, offset to the start of the data
 and some commonly used metadata checksum offload with protocol header offsets/lengths.
 
-For a newly allocated pktmbuf, the area at which the data begins in the message buffer is
+For a newly allocated fgenbuf, the area at which the data begins in the message buffer is
 FGEN_PKTMBUF_HEADROOM bytes after the beginning of the buffer, which is cache aligned.
 Message buffers may be used to carry control information, packets, events,
 and so on between different entities in the system.
 
-:numref:`figure_pktmbuf_layout` shows the basic layout of fgenbuf_t structure related to Mempool structures.
+:numref:`figure_fgenbuf_layout` shows the basic layout of fgenbuf_t structure related to Mempool structures.
 
-.. _figure_pktmbuf_layout:
+.. _figure_fgenbuf_layout:
 
-.. figure:: img/pktmbuf_layout.*
+.. figure:: img/fgenbuf_layout.*
 
    Pktmbuf Layout
 
@@ -45,7 +45,7 @@ The following set of figures help define the Rx/Tx usage model with AF_XDP.
 
 .. figure:: img/RX-UMEM-Buffer.*
 
-   RX UMEM pktmbuf layout
+   RX UMEM fgenbuf layout
 
 The TX buffer layout is the same as the RX buffer layout, but it does use some different offset values
 to align with AF_XDP requirements.
@@ -54,7 +54,7 @@ to align with AF_XDP requirements.
 
 .. figure:: img/TX-UMEM-Buffer.*
 
-   TX UMEM pktmbuf layout
+   TX UMEM fgenbuf layout
 
 The Rx/Tx buffers are somewhat defined by the AF_XDP UMEM buffer layout.
 
@@ -81,7 +81,7 @@ limiting of a single socket consuming all of the buffers.
 
 .. figure:: img/multiple-mempools-umem.*
 
-   UMEM with multiple pktmbuf pools
+   UMEM with multiple fgenbuf pools
 
 
 Buffers Stored in Memory Pools (UMEM)
@@ -90,8 +90,8 @@ Buffers Stored in Memory Pools (UMEM)
 The Buffer Manager uses the :ref:`Mempool Library <Mempool_Library>` to allocate buffers.
 For FGEN we use a mempool to help define and allocate buffers from a UMEM with AF_XDP. When creating a UMEM we use the
 mempool buffer memory as the UMEM buffers memory as in the figure :numref:`umem_mbuf` below.
-An pktmbuf contains a field indicating the pool that it originated from.
-When calling pktmbuf_free(m), the pktmbuf returns to its original pool.
+An fgenbuf contains a field indicating the pool that it originated from.
+When calling fgenbuf_free(m), the fgenbuf returns to its original pool.
 
 .. _umem_mbuf:
 
@@ -102,26 +102,26 @@ When calling pktmbuf_free(m), the pktmbuf returns to its original pool.
 Constructors
 ------------
 
-Packet pktmbuf constructors are provided by the API.
-The pktmbuf_init() function initializes some fields in the pktmbuf structure that
-are not modified by the user once created (pktmbuf type, origin pool, buffer start address, and so on).
+Packet fgenbuf constructors are provided by the API.
+The fgenbuf_init() function initializes some fields in the fgenbuf structure that
+are not modified by the user once created (fgenbuf type, origin pool, buffer start address, and so on).
 This function is given as a callback function to the mempool_create() function at pool creation time.
 
-Allocating and Freeing pktmbufs
+Allocating and Freeing fgenbufs
 -------------------------------
 
-Allocating a new pktmbuf requires the user to specify the mempool from which the pktmbuf should be taken.
-For any newly-allocated pktmbuf, it contains one segment, with a length of 0.
+Allocating a new fgenbuf requires the user to specify the mempool from which the fgenbuf should be taken.
+For any newly-allocated fgenbuf, it contains one segment, with a length of 0.
 The offset to data is initialized to have some bytes of headroom in the buffer (FGEN_PKTMBUF_HEADROOM).
 
-Freeing a pktmbuf means returning it into its original mempool.
-The content of an pktmbuf is not modified when it is stored in a pool (as a free pktmbuf).
-Fields initialized by the constructor do not need to be re-initialized at pktmbuf allocation.
+Freeing a fgenbuf means returning it into its original mempool.
+The content of an fgenbuf is not modified when it is stored in a pool (as a free fgenbuf).
+Fields initialized by the constructor do not need to be re-initialized at fgenbuf allocation.
 
-Manipulating pktmbufs
+Manipulating fgenbufs
 ---------------------
 
-This library provides some functions for manipulating the data in a packet pktmbuf. For instance:
+This library provides some functions for manipulating the data in a packet fgenbuf. For instance:
 
     *  Get data length
 
@@ -131,16 +131,16 @@ This library provides some functions for manipulating the data in a packet pktmb
 
     *  Append data after data
 
-    *  Remove data at the beginning of the buffer (pktmbuf_adj())
+    *  Remove data at the beginning of the buffer (fgenbuf_adj())
 
     *  Remove data at the end of the buffer (fgenbuf_trim()) Refer to the *FGEN API Reference* for details.
 
 Meta Information
 ----------------
 
-Some information is stored in the pktmbuf header i.e. data offset, packet length, lport number,
+Some information is stored in the fgenbuf header i.e. data offset, packet length, lport number,
 offload data and other information about the packet. More optional metadata is stored after the
-header in a metadata structure, which part of the headroom of the pktmbuf. The metadata information
+header in a metadata structure, which part of the headroom of the fgenbuf. The metadata information
 is currently used by the FGENT stack to hold more information about the packet.
 
 At this time FGEN does not support chaining of fgenbuf_t structures.

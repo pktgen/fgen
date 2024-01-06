@@ -96,17 +96,17 @@ OS Abstraction Layer (osal)
 Library to abstract some things like reading cpu counts from the file-system
 or interacting with a netdev.
 
-Network Packet Buffer Management (pktmbuf)
+Network Packet Buffer Management (fgenbuf)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The pktmbuf library provides the facility to create and destroy buffers that may be used by the
+The fgenbuf library provides the facility to create and destroy buffers that may be used by the
 FGEN application to store message buffers. The message buffers are created at startup time and
 stored in a mempool, using the FGEN mempool library.
 
 This library provides an API to allocate/free mbufs, manipulate packet buffers which are used
 to carry network packets.
 
-Network Packet Buffer Management is described in :ref:`pktmbuf Library <Pktmbuf_Library>`.
+Network Packet Buffer Management is described in :ref:`fgenbuf Library <Pktmbuf_Library>`.
 
 Poll-Mode Drivers (pmds)
 ~~~~~~~~~~~~~~~~~~~~~~~~
