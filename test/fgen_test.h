@@ -7,7 +7,7 @@
 
 /**
  * @file
- * CNE Frame Generator Test
+ * FGEN Frame Generator Test
  *
  */
 

@@ -4,14 +4,14 @@
 Timer Sample Application
 ==============================
 
-The Timer sample application demonstrates the use of a timer in a CNDP application. This application
-is implemented as a command that can be executed at the CNDP cli application. For more details
-about the CNDP cli application see :doc:`cli`.
+The Timer sample application demonstrates the use of a timer in a FGEN application. This application
+is implemented as a command that can be executed at the FGEN cli application. For more details
+about the FGEN cli application see :doc:`cli`.
 
 Running the Application
 -----------------------
 
-After :ref:`building CNDP <building-cndp>`, run the example:
+After :ref:`building FGEN <building-fgen>`, run the example:
 
 .. code-block:: console
 
@@ -21,13 +21,13 @@ Launch the timer test:
 
 .. code-block:: console
 
-    cndp-cli:/> timer
+    fgen-cli:/> timer
 
 Launch the perf test:
 
 .. code-block:: console
 
-    cndp-cli:/> perf
+    fgen-cli:/> perf
 
 Explanation
 -----------
@@ -38,7 +38,7 @@ Initialization
 ~~~~~~~~~~~~~~
 
 In addition to CLI initialization, the timer subsystem must be initialized, by calling the
-cne_timer_subsystem_init() function.
+fgen_timer_subsystem_init() function.
 
 Initialize CLI:
 
@@ -47,22 +47,22 @@ Initialize CLI:
   if (setup_cli() < 0)
         return -1;
 
-Initialize CNE timer library:
+Initialize FGEN timer library:
 
 .. code-block:: c
 
-    cne_timer_subsystem_init();
+    fgen_timer_subsystem_init();
 
 Managing Timers
 ~~~~~~~~~~~~~~~
 
-The call to cne_timer_init() is necessary before doing any other operation on the timer structure.
+The call to fgen_timer_init() is necessary before doing any other operation on the timer structure.
 
 Initialize timer structure:
 
 .. code-block:: c
 
-    cne_timer_init(&tim0);
+    fgen_timer_init(&tim0);
 
 Then, the two timers are configured:
 
@@ -75,12 +75,12 @@ Load single use timer for 2 seconds:
 
 .. code-block:: c
 
-    cne_timer_reset(&tim0, cne_get_timer_hz() * 2, SINGLE, cne_id(), single_timer, NULL);
+    fgen_timer_reset(&tim0, fgen_get_timer_hz() * 2, SINGLE, fgen_id(), single_timer, NULL);
 
 Load second timer, every 1/2 second:
 
 .. code-block:: c
 
-    cne_timer_reset(&tim0, cne_get_timer_hz() / 2, PERIODICAL, cne_id(), periodical_timer, &count);
+    fgen_timer_reset(&tim0, fgen_get_timer_hz() / 2, PERIODICAL, fgen_id(), periodical_timer, &count);
 
-The timer is stopped using the cne_timer_stop() function.
+The timer is stopped using the fgen_timer_stop() function.

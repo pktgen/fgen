@@ -1,19 +1,19 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
     Copyright (c) 2021-2022 Intel Corporation.
 
-CNDP Release 22.08
+FGEN Release 22.08
 ==================
 
 New Features
 ------------
-* TCP stack support added to CNET (Experimental)
+* TCP stack support added to FGENT (Experimental)
 * Go bindings and API restructure
 * Rust bindings and API restructure
 * MsgChan library added for message passing between threads and Go to C code
 * Ring library supports user-allocated memory to prepare for multi-process
 * Pktmbuf library supports external metadata to prepare for larger metadata needed for IPv6
 * GitHub Actions for unit tests, clang-format, and linting
-* Update VPP CNDP plugin to run on VPP 22.02
+* Update VPP FGEN plugin to run on VPP 22.02
 * Fedora 35 container support
 * Updates for libbpf 0.5.0, and 0.8.0
 * Support for libxdp 1.2.0
@@ -25,19 +25,19 @@ New Features
 
 Notable Changes
 ---------------
-* Experimental TCP stack support is added to CNET.
+* Experimental TCP stack support is added to FGENT.
 * Go and Rust bindings and API are restructured to be consistent with Go package and Rust crate
   naming conventions.
 
 Known Issues
 -------------
-* CNET stack assumes a single IP address per logical port, which means a 1:1 mapping between IP
+* FGENT stack assumes a single IP address per logical port, which means a 1:1 mapping between IP
   address and hardware queue. This is counter-intuitive to the way IP addresses are typically
   assigned, where a single IP address is assigned to a device which has many queues.
 
 Limitations
 ------------
-* Still need to use a full netdev (Physical Function) with CNDP at this time. Support for
+* Still need to use a full netdev (Physical Function) with FGEN at this time. Support for
   Virtual Functions and Sub-devices will follow in later releases.
 
 Tested Platforms System information

@@ -1789,7 +1789,7 @@
          id="tspan7398"
          x="221.08591"
          y="689.99701"
-         style="font-size:10px;line-height:1.25">cne_ring: stores memory pool's free objects</tspan></text>
+         style="font-size:10px;line-height:1.25">fgen_ring: stores memory pool's free objects</tspan></text>
     <g
        id="g3556"
        transform="translate(148.33068,-16.839839)">

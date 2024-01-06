@@ -8,7 +8,7 @@ MsgChan Library
 
 The msgchan library allows the user to create a pipe like message channel in user space using the
 lockless rings. The user can send and receive messages between different threads and between other
-languages. One goal is to have a Go binding to allow for passing messages between Go and CNDP.
+languages. One goal is to have a Go binding to allow for passing messages between Go and FGEN.
 
 *   Uses a lockless rings in FIFO mode
 
@@ -38,7 +38,7 @@ Use Cases
 
 Use cases for the MsgChan library include:
 
-    *  Communication between application threads in CNDP
+    *  Communication between application threads in FGEN
 
     *  Allow threads to attach to an existing msgchan, creating children message channels.
 

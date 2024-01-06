@@ -4,26 +4,26 @@
 
 
 #
-# Generate a jsonc file to be used with cndpfwd app
+# Generate a jsonc file to be used with fgenfwd app
 #
 # This script depends on the following environment variables:
 #
-# CNDP_DEVICES is the space-separated list of interfaces that passed to the
-# cndpfwd app. When this script is used as part of a K8s deployment, the
-# K8s device plugin populates the CNDP_DEVICES environment variable.
+# FGEN_DEVICES is the space-separated list of interfaces that passed to the
+# fgenfwd app. When this script is used as part of a K8s deployment, the
+# K8s device plugin populates the FGEN_DEVICES environment variable.
 #
-# CNDP_QUEUES is the set of queue IDs used for the logical port group. Any
-# format (i.e. "0-3") supported by the CNDP json string decoder is valid.
+# FGEN_QUEUES is the set of queue IDs used for the logical port group. Any
+# format (i.e. "0-3") supported by the FGEN json string decoder is valid.
 #
-# CNDP_COPY_MODE can be false or true, and determines whether COPY/SKB mode is
+# FGEN_COPY_MODE can be false or true, and determines whether COPY/SKB mode is
 # used for AF_XDP sockets.
 #
 
 set -euo pipefail
 
-CNDP_DEVICES=${CNDP_DEVICES:-net1}
-CNDP_QUEUES=${CNDP_QUEUES:-all}
-CNDP_COPY_MODE=${CNDP_COPY_MODE:-false}
+FGEN_DEVICES=${FGEN_DEVICES:-net1}
+FGEN_QUEUES=${FGEN_QUEUES:-all}
+FGEN_COPY_MODE=${FGEN_COPY_MODE:-false}
 
 #
 # Global variables. Can be accessed by any function.
@@ -59,14 +59,14 @@ function init_global_variables
 }
 
 #
-# Add each netdev from CNDP_DEVICES to the per-node netdev array
+# Add each netdev from FGEN_DEVICES to the per-node netdev array
 #
 function build_netdevs_by_node
 {
     local node
     local dev
 
-    for dev in "${CNDP_DEVICES[@]}"; do
+    for dev in "${FGEN_DEVICES[@]}"; do
         node=$(cat /sys/class/net/"$dev"/device/numa_node 2>/dev/null || echo 0)
         netdevs_by_node[node]="${netdevs_by_node[$node]} $dev"
     done
@@ -97,7 +97,7 @@ function emit_jsonc_application
     cat <<-EOF > $config_file
 {
     "application": {
-        "name": "cndpfwd",
+        "name": "fgenfwd",
         "description": "A packet forwarder for pktdev and xskdev"
     },
 EOF
@@ -111,7 +111,7 @@ function emit_jsonc_options
     cat <<-EOF >> $config_file
 
     "options": {
-        "uds_path": "/tmp/cndp.sock",
+        "uds_path": "/tmp/fgen.sock",
         "mode": "drop"
     }
 }
@@ -187,7 +187,7 @@ EOF
 #
 # Print "lport-groups" section
 # One group per NUMA node is created as long as there is at least one
-# device assigned to that node. The CNDP_QUEUES is a configurable set
+# device assigned to that node. The FGEN_QUEUES is a configurable set
 # of queues, or the keyword "all". A logical port is created for each
 # queue, and the lport is assigned to the thread.
 # In the future, the number of threads per node should be configurable
@@ -217,10 +217,10 @@ function emit_jsonc_lport_groups
 
         "node$i": {
             "netdevs": [${netdevs[*]}],
-            "queues": "$CNDP_QUEUES",
+            "queues": "$FGEN_QUEUES",
             "threads": ["fwd:$i"],
             "pmd": "net_af_xdp",
-            "skb_mode": $CNDP_COPY_MODE,
+            "skb_mode": $FGEN_COPY_MODE,
         }
 
 EOF

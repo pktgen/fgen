@@ -13,15 +13,15 @@ This API is enabled through the use of a flag in the lport configuration structu
 
 .. code-block:: C
 
-    #define LPORT_USER_MANAGED_BUFFERS   (1 << 5) /**< Enable Buffer Manager outside of CNDP */
+    #define LPORT_USER_MANAGED_BUFFERS   (1 << 5) /**< Enable Buffer Manager outside of FGEN */
 
-To enable buffer management outside of CNDP simple add the following flag to the lport configuration:
+To enable buffer management outside of FGEN simple add the following flag to the lport configuration:
 
 .. code-block:: C
 
     lport->flags |= LPORT_USER_MANAGED_BUFFERS
 
-By default CNDP supports an aligned memory model for UMEM frames (aligned to 2K). If an unaligned
+By default FGEN supports an aligned memory model for UMEM frames (aligned to 2K). If an unaligned
 memory model is required, this can be enabled through an additional lport_cfg_t flag:
 
 .. code-block:: C
@@ -74,8 +74,8 @@ ones own RX/TX function is also available should one prefer to provide their own
 These functions are set in the xskdev_info_t during the call to xskdev_socket_create()
 
 .. note::
-    For the case of CNDP managed buffers, new buffer management functions were implemented
-    in xskdev.c with the \*_default suffix. If CNDP is managing the buffers, then these
+    For the case of FGEN managed buffers, new buffer management functions were implemented
+    in xskdev.c with the \*_default suffix. If FGEN is managing the buffers, then these
     default functions are registered with the xskdev_info_t at setup time.
     It's critical for the default case that the bufsz in the lport configuration is set
     appropriately as it will dictate the UMEM framesize.
@@ -88,7 +88,7 @@ These functions are shown below:
         if (!c->buf_mgmt.buf_arg || !c->buf_mgmt.buf_alloc || !c->buf_mgmt.buf_free ||
             !c->buf_mgmt.buf_set_len || !c->buf_mgmt.buf_set_data || !c->buf_mgmt.buf_get_len ||
             !c->buf_mgmt.buf_get_data || c->buf_mgmt.buf_headroom == 0 || !c->buf_mgmt.buf_get_addr)
-            CNE_ERR_GOTO(err, "Buffer alloc/free pointers are not set\n");
+            FGEN_ERR_GOTO(err, "Buffer alloc/free pointers are not set\n");
 
         xskdev_buf_set_buf_mgmt_ops(&xi->buf_mgmt, &c->buf_mgmt);
     } else {
@@ -102,14 +102,14 @@ These functions are shown below:
         xi->buf_mgmt.buf_get_len      = xskdev_buf_get_len_default;
         xi->buf_mgmt.buf_get_data     = xskdev_buf_get_data_default;
         xi->buf_mgmt.buf_inc_ptr      = xskdev_buf_inc_ptr_default;
-        xi->buf_mgmt.buf_headroom     = sizeof(pktmbuf_t);
+        xi->buf_mgmt.buf_headroom     = sizeof(fgenbuf_t);
         xi->buf_mgmt.buf_get_addr     = xskdev_buf_get_addr_default;
         xi->buf_mgmt.frame_size       = c->bufsz;
         xi->buf_mgmt.pool_header_sz   = 0;
     }
 
 .. note::
-    It is assumed that if a user doesn't provide RX/TX function they wish to use the CNDP
+    It is assumed that if a user doesn't provide RX/TX function they wish to use the FGEN
     xskdev API functions.
 
 .. code-block:: C
@@ -148,11 +148,11 @@ A few examples of how the buffer management callbacks are invoked is shown below
     * @param bufs
     *   The list or vector or pktmbufs structures to send on the interface.
     * @param nb_pkts
-    *   The number of pktmbuf_t pointers in the list or vector bufs
+    *   The number of fgenbuf_t pointers in the list or vector bufs
     * @return
     *   The number of packet sent to the interface or 0 if RX is empty.
     */
-    CNDP_API __cne_always_inline uint16_t
+    FGEN_API __fgen_always_inline uint16_t
     xskdev_rx_burst(xskdev_info_t *xi, void **bufs, uint16_t nb_pkts)
     {
         return xi->buf_mgmt.buf_rx_burst(xi, bufs, nb_pkts);
@@ -166,11 +166,11 @@ A few examples of how the buffer management callbacks are invoked is shown below
     * @param bufs
     *   The list or vector or pktmbufs structures to send on the interface.
     * @param nb_pkts
-    *   The number of pktmbuf_t pointers in the list or vector bufs
+    *   The number of fgenbuf_t pointers in the list or vector bufs
     * @return
     *   The number of packet sent to the interface or 0 if RX is empty.
     */
-    CNDP_API __cne_always_inline uint16_t
+    FGEN_API __fgen_always_inline uint16_t
     xskdev_tx_burst(xskdev_info_t *xi, void **bufs, uint16_t nb_pkts)
     {
         return xi->buf_mgmt.buf_tx_burst(xi, bufs, nb_pkts);

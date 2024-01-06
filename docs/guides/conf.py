@@ -37,8 +37,8 @@ except:
     pass
 
 project = 'Cloud Native Data Plane'
-html_logo = '../logo/CNDP_logo_small.png'
-latex_logo = '../logo/CNDP_logo_small.png'
+html_logo = '../logo/FGEN_logo_small.png'
+latex_logo = '../logo/FGEN_logo_small.png'
 html_add_permalinks = ""
 html_show_copyright = False
 highlight_language = 'none'
@@ -98,8 +98,8 @@ class CustomLatexFormatter(LatexFormatter):
 PygmentsBridge.latex_formatter = CustomLatexFormatter
 
 # Configuration for man pages
-man_pages = [("testcne_app_ug/run_app", "testcne",
-              "tests for cndp", "", 1)]
+man_pages = [("testfgen_app_ug/run_app", "testcne",
+              "tests for fgen", "", 1)]
 
 
 # ####### :numref: fallback ########

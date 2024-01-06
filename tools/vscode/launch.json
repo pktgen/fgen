@@ -3,15 +3,15 @@
     "configurations": [
         {
             // use this as a basis for other apps
-            "name": "cndpfwd",
+            "name": "fgenfwd",
             "type": "cppdbg",
             "request": "launch",
             // assumes default build directory
-            "program": "${workspaceFolder}/builddir/examples/cndpfwd/cndpfwd",
+            "program": "${workspaceFolder}/builddir/examples/fgenfwd/fgenfwd",
             "args": [
                 // specify our JSON config
                 "-c",
-                "${workspaceFolder}/examples/cndpfwd/fwd.jsonc"
+                "${workspaceFolder}/examples/fgenfwd/fwd.jsonc"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

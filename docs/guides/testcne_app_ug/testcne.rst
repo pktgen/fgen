@@ -4,15 +4,15 @@
 Introduction
 ============
 
-This document is a user guide for the ``test-cne`` test application shipped as part of CNDP.
+This document is a user guide for the ``test-cne`` test application shipped as part of FGEN.
 
-The ``test-cne`` application is used to test the CNDP libraries. It's essentially a functional test
+The ``test-cne`` application is used to test the FGEN libraries. It's essentially a functional test
 harness.
 
 Running the Application
 =======================
 
-After :ref:`building CNDP <building-cndp>`, run ``test-cne`` with the following command.
+After :ref:`building FGEN <building-fgen>`, run ``test-cne`` with the following command.
 
 .. code-block:: console
 
@@ -87,8 +87,8 @@ Use 'chelp -a' to list all commands
     ls               ls  <dir> # list current directory
     rm               remove a file or directory
     mkdir            create a directory
-    ?                CLI help - display information for CNDP
-    chelp            CLI help - display information for CNDP
+    ?                CLI help - display information for FGEN
+    chelp            CLI help - display information for FGEN
     sleep            delay a number of seconds
     delay            delay a number of milliseconds
   bin:

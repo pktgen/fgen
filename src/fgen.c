@@ -1,23 +1,13 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2021 Intel Corporation
- */
-/*
- * Some logic and code ideas were lifted from DPDK's TGEN library, but
- * modified and simplified to fit into CNDP.
- *
- * The decoding of raw packet into a string feature was not in the
- * TGEN design and added for CNDP.
+ * Copyright(c) 2023-2024 Intel Corporation
  */
 
 #include <stdint.h>        // for uint32_t, uint16_t, int32_t, uint8_t
 #include <stdbool.h>
-#include <netinet/in.h>        // for ntohs, htonl, htons
+#include <netinet/in.h>    // for ntohs, htonl, htons
 
-#include <cne_common.h>
-#include <cne_log.h>
-#include <cne_strings.h>
-#include <pktmbuf.h>
-#include <cne_cycles.h>
+#include <fgen_common.h>
+#include <fgen_log.h>
 
 #include "fgen.h"
 
@@ -30,7 +20,7 @@ _add_frame(fgen_t *fg, uint16_t idx, const char *name, const char *fstr)
     size_t sz;
 
     if (idx >= fg->max_frames)
-        CNE_ERR_RET("Number of frames exceeds %u\n", fg->max_frames);
+        FGEN_ERR_RET("Number of frames exceeds %u\n", fg->max_frames);
 
     f           = &fg->frames[idx];
     f->data_len = 0;
@@ -39,7 +29,7 @@ _add_frame(fgen_t *fg, uint16_t idx, const char *name, const char *fstr)
     sz = strnlen(fstr, FGEN_MAX_STRING_LENGTH);
 
     if (sz <= 0 || sz >= FGEN_MAX_STRING_LENGTH)
-        CNE_ERR_RET("String is 0 or too long %ld > %d\n", sz, FGEN_MAX_STRING_LENGTH);
+        FGEN_ERR_RET("String is 0 or too long %ld > %d\n", sz, FGEN_MAX_STRING_LENGTH);
 
     f->name[0] = '\0';
     if (name)
@@ -50,10 +40,10 @@ _add_frame(fgen_t *fg, uint16_t idx, const char *name, const char *fstr)
 
     f->frame_text = strdup(fstr);
     if (!f->frame_text)
-        CNE_ERR_GOTO(leave, "Unable to allocate memory\n");
+        FGEN_ERR_GOTO(leave, "Unable to allocate memory\n");
 
     if (_encode_frame(fg, f) < 0)
-        CNE_ERR_GOTO(leave, "Failed to parse frame\n");
+        FGEN_ERR_GOTO(leave, "Failed to parse frame\n");
 
     fg->nb_frames++;
 
@@ -71,16 +61,16 @@ int
 fgen_add_frame_at(fgen_t *fg, int idx, const char *name, const char *fstr)
 {
     if (!fg)
-        CNE_ERR_RET("fgen_t pointer is NULL\n");
+        FGEN_ERR_RET("fgen_t pointer is NULL\n");
 
     if (!fstr)
-        CNE_ERR_RET("fgen string is NULL\n");
+        FGEN_ERR_RET("fgen string is NULL\n");
 
     if (_add_frame(fg, idx, name, fstr) < 0)
-        CNE_ERR_RET("Failed to parse frame\n");
+        FGEN_ERR_RET("Failed to parse frame\n");
 
     if (fg->flags & (FGEN_VERBOSE || FGEN_DUMP_DATA))
-        cne_printf("\n");
+        fgen_printf("\n");
 
     return 0;
 }
@@ -89,23 +79,24 @@ int
 fgen_add_frame(fgen_t *fg, const char *name, const char *fstr)
 {
     if (!fg)
-        CNE_ERR_RET("fgen_t pointer is NULL\n");
+        FGEN_ERR_RET("fgen_t pointer is NULL\n");
 
     return fgen_add_frame_at(fg, fg->nb_frames, name, fstr);
 }
 
-static __cne_always_inline void
-_prefetch_mbuf_data(pktmbuf_t *m, uint32_t hdr_len)
+#if 0
+static __fgen_always_inline void
+_prefetch_mbuf_data(fgenbuf_t *m, uint32_t hdr_len)
 {
     uint8_t *pkt_data = pktmbuf_mtod(m, uint8_t *);
 
-    cne_prefetch0_write(pkt_data);
-    if (hdr_len > CNE_CACHE_LINE_SIZE)
-        cne_prefetch0_write(pkt_data + CNE_CACHE_LINE_SIZE);
+    fgen_prefetch0_write(pkt_data);
+    if (hdr_len > FGEN_CACHE_LINE_SIZE)
+        fgen_prefetch0_write(pkt_data + FGEN_CACHE_LINE_SIZE);
 }
 
 int
-fgen_alloc(fgen_t *fg, int low, int high, pktmbuf_t **mbufs, uint32_t nb_pkts)
+fgen_alloc(fgen_t *fg, int low, int high, fgenbuf_t **mbufs, uint32_t nb_pkts)
 {
     frame_t *f;
     void *pkt_data;
@@ -113,10 +104,10 @@ fgen_alloc(fgen_t *fg, int low, int high, pktmbuf_t **mbufs, uint32_t nb_pkts)
     uint64_t tsc;
 
     if (unlikely(fg == NULL))
-        CNE_ERR_RET("fgen_t pointer is NULL\n");
+        FGEN_ERR_RET("fgen_t pointer is NULL\n");
 
     if (unlikely(mbufs == NULL))
-        CNE_ERR_RET("pktmbuf list is NULL\n");
+        FGEN_ERR_RET("pktmbuf list is NULL\n");
 
     if (low < 0)
         low = 0;
@@ -126,18 +117,18 @@ fgen_alloc(fgen_t *fg, int low, int high, pktmbuf_t **mbufs, uint32_t nb_pkts)
         low = high;
     begin = low;
 
-    uint32_t prefetch = CNE_MIN(nb_pkts, 8U);
+    uint32_t prefetch = FGEN_MIN(nb_pkts, 8U);
 
-    tsc = cne_rdtsc();
+    tsc = fgen_rdtsc();
 
     for (uint32_t i = 0; i < prefetch; i++)
-        cne_prefetch0_write(pktmbuf_mtod(mbufs[i], char *));
+        fgen_prefetch0_write(pktmbuf_mtod(mbufs[i], char *));
 
     for (uint32_t i = 0; i < nb_pkts; i++) {
-        pktmbuf_t *m = mbufs[i];
+        fgenbuf_t *m = mbufs[i];
 
         if ((i + prefetch) < nb_pkts)
-            cne_prefetch0_write(pktmbuf_mtod(mbufs[i + prefetch], char *));
+            fgen_prefetch0_write(pktmbuf_mtod(mbufs[i + prefetch], char *));
 
         f = &fg->frames[low++];
         if (low >= high)
@@ -158,15 +149,16 @@ fgen_alloc(fgen_t *fg, int low, int high, pktmbuf_t **mbufs, uint32_t nb_pkts)
 }
 
 int
-fgen_free(fgen_t *fg, pktmbuf_t **mbufs, uint32_t nb_pkts)
+fgen_free(fgen_t *fg, fgenbuf_t **mbufs, uint32_t nb_pkts)
 {
     if (!fg || !mbufs || nb_pkts <= 0)
-        CNE_ERR_RET("Invalid arguments\n");
+        FGEN_ERR_RET("Invalid arguments\n");
 
     pktmbuf_free_bulk(mbufs, nb_pkts);
 
     return 0;
 }
+#endif
 
 fgen_t *
 fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags)
@@ -180,7 +172,7 @@ fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags)
     if (frame_sz == 0)
         frame_sz = 1;
 
-    bufsz = CNE_ALIGN_CEIL(frame_sz, CNE_CACHE_LINE_SIZE);
+    bufsz = FGEN_ALIGN_CEIL(frame_sz, FGEN_CACHE_LINE_SIZE);
 
     fg = calloc(1, sizeof(fgen_t));
     if (fg) {
@@ -193,11 +185,11 @@ fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags)
 
         f = fg->frames = calloc(max_frames, sizeof(frame_t));
         if (!fg->frames)
-            CNE_ERR_GOTO(leave, "Unable to allocate frame_t structures\n");
+            FGEN_ERR_GOTO(leave, "Unable to allocate frame_t structures\n");
 
         fg->mm = mmap_alloc(max_frames, bufsz, MMAP_HUGEPAGE_4KB);
         if (!fg->mm)
-            CNE_ERR_GOTO(leave, "Unable to allocate frame buffers\n");
+            FGEN_ERR_GOTO(leave, "Unable to allocate frame buffers\n");
 
         b = mmap_addr(fg->mm);
 
@@ -333,11 +325,11 @@ fgen_load_file(fgen_t *fg, const char *filename)
     int ret, cnt;
 
     if (!fg || !filename || strlen(filename) == 0)
-        CNE_ERR_RET("Filename is not specified\n");
+        FGEN_ERR_RET("Filename is not specified\n");
 
     f = fopen(filename, "r");
     if (!f)
-        CNE_ERR_RET("Unable to open file '%s'\n", filename);
+        FGEN_ERR_RET("Unable to open file '%s'\n", filename);
 
     memset(name, 0, sizeof(name));
     memset(buf, 0, sizeof(buf));
@@ -356,7 +348,7 @@ fgen_load_file(fgen_t *fg, const char *filename)
             snprintf(name, sizeof(name), "Frame-%d", cnt);
 
         if (_add_frame(fg, cnt, name, buf) < 0)
-            CNE_ERR_RET("Adding a frame failed\n");
+            FGEN_ERR_RET("Adding a frame failed\n");
     }
 
     return fg->nb_frames;
@@ -372,9 +364,9 @@ fgen_load_strings(fgen_t *fg, const char **fstr, int len)
     int cnt;
 
     if (!fg)
-        CNE_ERR_RET("fgen_t pointer is NULL\n");
+        FGEN_ERR_RET("fgen_t pointer is NULL\n");
     if (!fstr)
-        CNE_ERR_RET("Frame string pointer array is NULL\n");
+        FGEN_ERR_RET("Frame string pointer array is NULL\n");
 
     for (cnt = 0; cnt < len; cnt++) {
         if (len == 0 && fstr[cnt] == NULL)
@@ -382,7 +374,7 @@ fgen_load_strings(fgen_t *fg, const char **fstr, int len)
 
         s = txt = strdup(fstr[cnt]);
         if (!txt)
-            CNE_ERR_RET("Unable to strdup() text\n");
+            FGEN_ERR_RET("Unable to strdup() text\n");
 
         name[0] = '\0';
         if ((c = strstr(s, ":=")) == NULL)
@@ -394,11 +386,11 @@ fgen_load_strings(fgen_t *fg, const char **fstr, int len)
             while ((*s == ' ' || *s == '\t' || *s == '\n') && *s != '\0')
                 s++;
             if (*s == '\0')
-                CNE_ERR_RET("Invalid frame name '%s'\n", fstr[cnt]);
+                FGEN_ERR_RET("Invalid frame name '%s'\n", fstr[cnt]);
         }
 
         if (_add_frame(fg, cnt, name, s) < 0)
-            CNE_ERR_RET("Adding a frame failed\n");
+            FGEN_ERR_RET("Adding a frame failed\n");
     }
 
     free(txt);
@@ -414,15 +406,15 @@ fgen_print_string(const char *msg, const char *text)
 
     txt = strdup(text);
     if (!txt)
-        CNE_RET("Unable to strdup() text string\n");
+        FGEN_RET("Unable to strdup() text string\n");
 
-    cne_printf("\n");
-    cne_printf("[yellow]>>>> [cyan]%s [yellow]<<<<[]\n", (msg) ? msg : "");
+    fgen_printf("\n");
+    fgen_printf("[yellow]>>>> [cyan]%s [yellow]<<<<[]\n", (msg) ? msg : "");
 
-    num = cne_strtok(txt, "/", layers, cne_countof(layers));
+    num = fgen_strtok(txt, "/", layers, fgen_countof(layers));
     if (num) {
         for (int i = 0; i < num; i++)
-            cne_printf("   %s\n", layers[i]);
+            fgen_printf("   %s\n", layers[i]);
     }
     free(txt);
 }
@@ -430,7 +422,7 @@ void
 fgen_print_frame(const char *msg, frame_t *f)
 {
     if (!f->frame_text || strlen(f->frame_text) == 0)
-        CNE_RET("text pointer is NULL or zero length string\n");
+        FGEN_RET("text pointer is NULL or zero length string\n");
 
     fgen_print_string((msg) ? msg : f->name, f->frame_text);
 }

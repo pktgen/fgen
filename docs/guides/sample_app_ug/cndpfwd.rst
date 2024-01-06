@@ -1,10 +1,10 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
     Copyright (c) 2019-2023 Intel Corporation.
 
-CNDPFWD Sample Application
+FGENFWD Sample Application
 ==========================
 
-The cndpfwd sample application is a simple example of packet processing using CNDP API. The
+The fgenfwd sample application is a simple example of packet processing using FGEN API. The
 "pkt_api" option lets you choose among the xskdev or pktdev API. The following modes are available:
 
  * drop (aka rx-only)
@@ -21,21 +21,21 @@ destination port does not exist the packet is sent back out the port on which it
 ACL modes follow this same logic as long as packets pass ACL checks.
 
 For the "acl-strict" and "acl-permissive" modes the application demonstrates the use of the ACL
-library in CNDP. These modes allow for simple ACL classification and will create an ACL
+library in FGEN. These modes allow for simple ACL classification and will create an ACL
 classification table based on some hardcoded rules and will forward or drop traffic, depending on
 whether it matches the classification rules set up in the ACL context. The "acl-strict" mode drops
 all packets unless it matches a permit rule while the "acl-permissive" mode forwards everything
 unless it matches a deny rule. Both ACL modes drop all non-IPv4 traffic unconditionally.
 
 The creation of an AF_XDP socket involves loading of a BPF program which is a privileged operation.
-In order to run the CNDP application in an unprivileged container, the privileged operations are
-done by a Kubernetes device plugin. The CNDP application talks to the Kubernetes device plugin over
+In order to run the FGEN application in an unprivileged container, the privileged operations are
+done by a Kubernetes device plugin. The FGEN application talks to the Kubernetes device plugin over
 a unix domain socket. The path to the unix domain socket created by the device plugin is the value
 of the "uds_path" attribute. The "unprivileged" flag is automatically configured if the "uds_path"
 parameter is used. The sysctl param ``kernel.unprivileged_bpf_disabled`` should be 0 to perform
 unprivileged BPF operations. Alternatively the "xsk_pin_path" can be used in combination with the
 AF_XDP Device Plugin to support unprivileged Pods. For more details about the device plugin, please refer to
-:ref:`Integration of the K8s device plugin with CNDP <integration-k8s-dp>`. Alternatively
+:ref:`Integration of the K8s device plugin with FGEN <integration-k8s-dp>`. Alternatively
 
 Running the Application
 -----------------------
@@ -45,11 +45,11 @@ a linux environment:
 
 .. code-block:: console
 
-    $ ./builddir/examples/cndpfwd/cndpfwd -c examples/cndpfwd/fwd.jsonc
+    $ ./builddir/examples/fgenfwd/fgenfwd -c examples/fgenfwd/fwd.jsonc
 
 .. code-block:: console
 
-    Usage: ./builddir/examples/cndpfwd/cndpfwd [-h] [-c json_file] [-b burst] <mode>
+    Usage: ./builddir/examples/fgenfwd/fgenfwd [-h] [-c json_file] [-b burst] <mode>
       <mode>         Mode types [drop | rx-only], tx-only, [lb | loopback], fwd, tx-only-rx,
                      acl-strict or acl-permissive
       -a <api>       The API type to use xskdev or pktdev APIs, default is xskdev.\n"
@@ -64,17 +64,17 @@ a linux environment:
       -h             Display the help information
 
 To run the installed (``make install``) version of the application, please use the
-provided wrapper script rcndp in the tools directory which sets the LD_LIBRARY_PATH to the
+provided wrapper script rfgen in the tools directory which sets the LD_LIBRARY_PATH to the
 location where libraries are installed.
 
 .. code-block:: console
 
-    ./tools/rcndp cndpfwd -c /tmp/fwd.jsonc
+    ./tools/rfgen fgenfwd -c /tmp/fwd.jsonc
 
 Example configuration JSON file
 -------------------------------
 
-The configuration json file is located in the ``cndpfwd`` example sub-directory
+The configuration json file is located in the ``fgenfwd`` example sub-directory
 
 .. code-block:: console
 
@@ -89,7 +89,7 @@ The configuration json file is located in the ``cndpfwd`` example sub-directory
         //    name        - (O) the name of the application
         //    description - (O) the description of the application
         "application": {
-            "name": "cndpfwd",
+            "name": "fgenfwd",
             "description": "A simple packet forwarder for pktdev and xskdev"
         },
 
@@ -241,10 +241,10 @@ The configuration json file is located in the ``cndpfwd`` example sub-directory
 Unix Domain Socket interface
 ----------------------------
 
-The `cndpfwd` sample application provides a rudimentary remote control interface
-accessible through a Unix socket created under `/var/run/cndp` directory. Each
+The `fgenfwd` sample application provides a rudimentary remote control interface
+accessible through a Unix socket created under `/var/run/fgen` directory. Each
 successive run will create a new socket file, formatted as `app_socket.<pid>`
-where `pid` is the Process ID of the resulting `cndpfwd` application process.
+where `pid` is the Process ID of the resulting `fgenfwd` application process.
 
 It is possible to directly connect to the socket and communicate with it using
 plaintext requests, and the API will respond with JSON data.
@@ -257,15 +257,15 @@ plaintext requests, and the API will respond with JSON data.
 Available UDS endpoints:
 
 - `/` - list all available endpoints
-- `/info` - lists some basic information about the `cndpfwd` process
-- `/app/hostname` - returns hostname of the machine `cndpfwd` is running on
+- `/info` - lists some basic information about the `fgenfwd` process
+- `/app/hostname` - returns hostname of the machine `fgenfwd` is running on
 - `/app/appname` - returns application name
-- `/app/threads` - lists active CNDP threads
-- `/app/ports` - lists configured CNDP ports
+- `/app/threads` - lists active FGEN threads
+- `/app/ports` - lists configured FGEN ports
 - `/app/start` and `/app/stop` - allows starting and stopping individual threads
   by name, specified as a parameter, e.g. `/app/stop,fwd:0` (or `all` to start
   or stop all forwarding threads)
-- `/metrics/port_stats` - lists metrics for `cndpfwd` app
+- `/metrics/port_stats` - lists metrics for `fgenfwd` app
 
 The following UDS endpoints will only be available if ACL is enabled:
 

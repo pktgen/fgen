@@ -6,7 +6,7 @@ import argparse
 import json
 
 """
-Check that a given jsonc configuration file validates against the CNDP schema.
+Check that a given jsonc configuration file validates against the FGEN schema.
 This script requires the "jsonc-parser" and "jsonschema" python packages.
 """
 
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsonc_file', help='The jsonc file to check')
     parser.add_argument('--schema', help='The schema to check against',
-                        default='tools/cndp.schema')
+                        default='tools/fgen.schema')
     args = parser.parse_args()
 
     # Convert jsonc to json

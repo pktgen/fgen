@@ -1,12 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2021 Intel Corporation
- */
-/*
- * Some logic and code ideas were lifted from DPDK's TGEN library, but
- * modified and simplified to fit into CNDP.
- *
- * The decoding of raw packet into a string feature was not in the
- * TGEN design and added for CNDP.
+ * Copyright(c) 2023-2024 Intel Corporation
  */
 
 #include <stdint.h>        // for uint32_t, uint16_t, int32_t, uint8_t
@@ -16,15 +9,12 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 
-#include <cne_common.h>
-#include <cne_log.h>
-#include <cne_strings.h>
-#include <hexdump.h>
-#include <net/cne_ether.h>
-#include <net/cne_ip.h>
-#include <net/cne_udp.h>
-#include <net/cne_tcp.h>
-#include <net/cne_vxlan.h>
+#include <fgen_common.h>
+#include <net/fgen_ether.h>
+#include <net/fgen_ip.h>
+#include <net/fgen_udp.h>
+#include <net/fgen_tcp.h>
+#include <net/fgen_vxlan.h>
 
 #include "fgen.h"
 #include "decode.h"
@@ -46,7 +36,7 @@ _append(decode_t *dc, const char *format, ...)
     if (dc->buffer == NULL) {
         dc->buffer = calloc(1, 4 * FGEN_EXTRA_SPACE);
         if (dc->buffer == NULL)
-            CNE_ERR_RET("unable to allocate buffer memory\n");
+            FGEN_ERR_RET("unable to allocate buffer memory\n");
 
         dc->buf_len = (4 * FGEN_EXTRA_SPACE);
         dc->used    = 0;
@@ -59,13 +49,13 @@ _append(decode_t *dc, const char *format, ...)
 
         /* Make sure the max length is capped to a max size */
         if (nbytes >= FGEN_MAX_BUF_LEN)
-            CNE_ERR_RET("total length %d > %d max\n", nbytes, FGEN_MAX_BUF_LEN);
+            FGEN_ERR_RET("total length %d > %d max\n", nbytes, FGEN_MAX_BUF_LEN);
 
         /* expand the buffer space */
         char *p = realloc(dc->buffer, nbytes);
 
         if (p == NULL)
-            CNE_ERR_RET("unable to re-allocate buffer length %d\n", nbytes);
+            FGEN_ERR_RET("unable to re-allocate buffer length %d\n", nbytes);
 
         /* Clear out new buffer space */
         memset(&p[dc->buf_len], 0, nbytes - dc->buf_len);
@@ -130,10 +120,10 @@ _decode_tsc(decode_t *dc)
 static int
 _decode_udp(decode_t *dc)
 {
-    struct cne_udp_hdr *udp;
+    struct fgen_udp_hdr *udp;
 
-    udp = decode_mtod_offset(dc, struct cne_udp_hdr *, decode_offset(dc));
-    decode_offset(dc) += sizeof(struct cne_udp_hdr);
+    udp = decode_mtod_offset(dc, struct fgen_udp_hdr *, decode_offset(dc));
+    decode_offset(dc) += sizeof(struct fgen_udp_hdr);
 
     _append(dc, FGEN_UDP_STR "(");
     _append(dc, "dport=%u,sport=%u,len=%u,cksum=0x%x", ntohs(udp->dst_port), ntohs(udp->src_port),
@@ -146,10 +136,10 @@ _decode_udp(decode_t *dc)
 static int
 _decode_tcp(decode_t *dc)
 {
-    struct cne_tcp_hdr *tcp;
+    struct fgen_tcp_hdr *tcp;
 
-    tcp = decode_mtod_offset(dc, struct cne_tcp_hdr *, decode_offset(dc));
-    decode_offset(dc) += sizeof(struct cne_tcp_hdr);
+    tcp = decode_mtod_offset(dc, struct fgen_tcp_hdr *, decode_offset(dc));
+    decode_offset(dc) += sizeof(struct fgen_tcp_hdr);
 
     (void)tcp;
 
@@ -171,12 +161,12 @@ _decode_tcp(decode_t *dc)
 static int
 _decode_ipv4(decode_t *dc)
 {
-    struct cne_ipv4_hdr *ip;
+    struct fgen_ipv4_hdr *ip;
     char buf[64];
 
-    ip = decode_mtod_offset(dc, struct cne_ipv4_hdr *, decode_offset(dc));
+    ip = decode_mtod_offset(dc, struct fgen_ipv4_hdr *, decode_offset(dc));
 
-    decode_offset(dc) += sizeof(struct cne_ipv4_hdr);
+    decode_offset(dc) += sizeof(struct fgen_ipv4_hdr);
 
     _append(dc, FGEN_IPv4_STR "(");
 
@@ -212,12 +202,12 @@ _decode_ipv4(decode_t *dc)
 static int
 _decode_ipv6(decode_t *dc)
 {
-    struct cne_ipv6_hdr *ip;
+    struct fgen_ipv6_hdr *ip;
     char buf[64];
 
-    ip = decode_mtod_offset(dc, struct cne_ipv6_hdr *, decode_offset(dc));
+    ip = decode_mtod_offset(dc, struct fgen_ipv6_hdr *, decode_offset(dc));
 
-    decode_offset(dc) += sizeof(struct cne_ipv6_hdr);
+    decode_offset(dc) += sizeof(struct fgen_ipv6_hdr);
 
     _append(dc, FGEN_IPv6_STR "(");
 
@@ -261,11 +251,11 @@ _decode_dot1q(decode_t *dc)
 static int
 _decode_vlan(decode_t *dc, bool is_dot1ad)
 {
-    struct cne_vlan_hdr *vlan;
+    struct fgen_vlan_hdr *vlan;
     uint16_t vid, prio, cfi, tci, proto;
 
-    vlan = decode_mtod_offset(dc, struct cne_vlan_hdr *, decode_offset(dc));
-    decode_offset(dc) += sizeof(struct cne_vlan_hdr);
+    vlan = decode_mtod_offset(dc, struct fgen_vlan_hdr *, decode_offset(dc));
+    decode_offset(dc) += sizeof(struct fgen_vlan_hdr);
 
     tci  = ntohs(vlan->vlan_tci);
     vid  = tci & 0xFFF;
@@ -277,13 +267,13 @@ _decode_vlan(decode_t *dc, bool is_dot1ad)
     _append(dc, ")/");
 
     proto = ntohs(vlan->eth_proto);
-    if (is_dot1ad && proto == CNE_ETHER_TYPE_VLAN)
+    if (is_dot1ad && proto == FGEN_ETHER_TYPE_VLAN)
         return _decode_dot1q(dc);
-    else if (proto == CNE_ETHER_TYPE_QINQ)
+    else if (proto == FGEN_ETHER_TYPE_QINQ)
         return _decode_dot1ad(dc);
-    else if (proto == CNE_ETHER_TYPE_IPV4)
+    else if (proto == FGEN_ETHER_TYPE_IPV4)
         return _decode_ipv4(dc);
-    else if (proto == CNE_ETHER_TYPE_IPV6)
+    else if (proto == FGEN_ETHER_TYPE_IPV6)
         return _decode_ipv6(dc);
 
     return -1;
@@ -311,11 +301,11 @@ _decode_ether(decode_t *dc)
     decode_offset(dc) += sizeof(struct ether_header);
 
     switch (ntohs(eth->ether_type)) {
-    case CNE_ETHER_TYPE_VLAN:
+    case FGEN_ETHER_TYPE_VLAN:
         return _decode_dot1ad(dc);
-    case CNE_ETHER_TYPE_QINQ:
+    case FGEN_ETHER_TYPE_QINQ:
         return _decode_dot1q(dc);
-    case CNE_ETHER_TYPE_IPV4:
+    case FGEN_ETHER_TYPE_IPV4:
         return _decode_ipv4(dc);
     default:
         break;

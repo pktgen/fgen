@@ -4,4 +4,4 @@
 Vpp-plugin Sample Application
 ==============================
 
-Refer to the README file located in the cndp/examples/vpp-plugin directory.
+Refer to the README file located in the fgen/examples/vpp-plugin directory.

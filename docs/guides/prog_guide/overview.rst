@@ -1,44 +1,44 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
     Copyright (c) 2010-2023 Intel Corporation.
 
-.. _CNDP_Overview:
+.. _FGEN_Overview:
 
 Overview
 ========
 
-This section gives a global overview of the architecture of Cloud Native Data Plane (CNDP).
+This section gives a global overview of the architecture of Cloud Native Data Plane (FGEN).
 
-The main goal of the CNDP is to provide a simple, complete framework for fast packet processing in
+The main goal of the FGEN is to provide a simple, complete framework for fast packet processing in
 Cloud Native data plane applications. Users may use the code to understand some of the techniques
 employed, to build upon for prototyping or to add their own protocol stacks.
 
-.. _cndp_system_overview:
+.. _fgen_system_overview:
 
-.. figure:: img/cndp_system_overview.*
+.. figure:: img/fgen_system_overview.*
 
-   CNDP System Overview
+   FGEN System Overview
 
 Development Environment
 -----------------------
 
-The CNDP project installation requires Linux and the associated toolchain,
+The FGEN project installation requires Linux and the associated toolchain,
 such as one or more compilers, assembler, make utility,
-editor and various libraries to create the CNDP components and libraries.
+editor and various libraries to create the FGEN components and libraries.
 
-See the *CNDP Getting Started Guide* for information on setting up the development environment.
+See the *FGEN Getting Started Guide* for information on setting up the development environment.
 
-.. _CNDP_Components:
+.. _FGEN_Components:
 
 Components
 ----------
-CNDP provides a number of libraries and tools that can be catagorised as follows:
+FGEN provides a number of libraries and tools that can be catagorised as follows:
 
 * Core libraries: the core libraries for interacting with an lport
 * Application libraries: libraries with additional functionality that can be used by apps.
-* PMDs: the PMDs enabled in CNDP.
+* PMDs: the PMDs enabled in FGEN.
 * Functional Test: testcne - a functional test framework.
-* Ansible Playbooks: Playbooks for setting up the CNDP Development environment.
-* Docker and Kubernetes: Docker files, Pod specs and instructions for getting started with CNDP in a Kubernetes env.
+* Ansible Playbooks: Playbooks for setting up the FGEN Development environment.
+* Docker and Kubernetes: Docker files, Pod specs and instructions for getting started with FGEN in a Kubernetes env.
 * Language bindings
 
 An incomplete picture of the architecture is shown here.
@@ -100,8 +100,8 @@ Network Packet Buffer Management (pktmbuf)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The pktmbuf library provides the facility to create and destroy buffers that may be used by the
-CNDP application to store message buffers. The message buffers are created at startup time and
-stored in a mempool, using the CNDP mempool library.
+FGEN application to store message buffers. The message buffers are created at startup time and
+stored in a mempool, using the FGEN mempool library.
 
 This library provides an API to allocate/free mbufs, manipulate packet buffers which are used
 to carry network packets.
@@ -159,20 +159,20 @@ timer implementations.
 
     * Intel(R) Data Streaming Accelerator (Intel(R) DSA)
 
-CNET - Cloud Native Network stack (lib/cnet)
+FGENT - Cloud Native Network stack (lib/cnet)
 --------------------------------------------
 
-The libraries under the cnet directory create the CNET stack, which uses the :ref:`Graph Library <Graph_Library>`.
+The libraries under the cnet directory create the FGENT stack, which uses the :ref:`Graph Library <Graph_Library>`.
 These include nodes for UDP/IPv4/QUIC with IPv6/TCP in the future.
 
-The CNET stack gets most of its configuration via netlink messages. Using netlink allows CNET to be
+The FGENT stack gets most of its configuration via netlink messages. Using netlink allows FGENT to be
 configured via the host command line tools. Using tools like ``ifconfig`` or ``ip`` or ``arp`` the user
-can configure the CNET and allow CNET to detect changes in the system network configuration.
+can configure the FGENT and allow FGENT to detect changes in the system network configuration.
 
-The :numref:`cnet_overview` shows the basic layout of the CNDP with CNET stack and components.
+The :numref:`cnet_overview` shows the basic layout of the FGEN with FGENT stack and components.
 
 .. _cnet_overview:
 
 .. figure:: img/cnet_overview.*
 
-   CNET Overview
+   FGENT Overview

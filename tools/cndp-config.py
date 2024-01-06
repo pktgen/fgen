@@ -3,8 +3,8 @@
 # Copyright (c) 2020-2023 Intel Corporation
 
 """
-Script to be used with the CNDP applications.
-Allows the user send a json file to a CNDP application
+Script to be used with the FGEN applications.
+Allows the user send a json file to a FGEN application
 """
 
 import sys
@@ -42,8 +42,8 @@ file = sys.argv[1]
 print('File: ', file)
 
 # Path to sockets for processes run as a root user
-for f in glob.glob('/var/run/cndp/config*'):
+for f in glob.glob('/var/run/fgen/config*'):
     handle_socket(f)
 # Path to sockets for processes run as a regular user
-for f in glob.glob('/run/user/%d/cndp/config*' % os.getuid()):
+for f in glob.glob('/run/user/%d/fgen/config*' % os.getuid()):
     handle_socket(f)

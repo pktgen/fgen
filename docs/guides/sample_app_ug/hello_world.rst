@@ -4,7 +4,7 @@
 Hello World Sample Application
 ==============================
 
-The Hello World sample application is an example of a simple CNDP application. The application
+The Hello World sample application is an example of a simple FGEN application. The application
 prints some system information and 'hello world' from each thread.
 
 Running the Application

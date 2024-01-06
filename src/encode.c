@@ -1,27 +1,17 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2021 Intel Corporation
- */
-/*
- * Some logic and code ideas were lifted from DPDK's TGEN library, but
- * modified and simplified to fit into CNDP.
- *
- * The decoding of raw packet into a string feature was not in the
- * TGEN design and added for CNDP.
+ * Copyright(c) 2023-2024 Intel Corporation
  */
 
 #include <stdint.h>        // for uint32_t, uint16_t, int32_t, uint8_t
 #include <stdbool.h>
 #include <netinet/in.h>        // for ntohs, htonl, htons
 
-#include <cne_common.h>
-#include <cne_log.h>
-#include <cne_strings.h>
-#include <net/cne_ether.h>
-#include <hexdump.h>
-#include <net/cne_ip.h>
-#include <net/cne_udp.h>
-#include <net/cne_tcp.h>
-#include <net/cne_vxlan.h>
+#include <fgen_common.h>
+#include <net/fgen_ether.h>
+#include <net/fgen_ip.h>
+#include <net/fgen_udp.h>
+#include <net/fgen_tcp.h>
+#include <net/fgen_vxlan.h>
 
 #include "fgen.h"
 #include "decode.h"
@@ -31,7 +21,7 @@ extern int _encode_frame(fgen_t *fg, frame_t *f);
 #define FGEN_LOPT(_p, _i)                                  \
     ({                                                     \
         if ((_i) >= FGEN_MAX_LAYERS)                       \
-            CNE_ERR_RET("Invalid layer index %d\n", (_i)); \
+            FGEN_ERR_RET("Invalid layer index %d\n", (_i)); \
         &(_p)->opts[(_i)];                                 \
     })
 
@@ -41,7 +31,7 @@ extern int _encode_frame(fgen_t *fg, frame_t *f);
         errno = 0;                                              \
         _x    = strtol((_v), NULL, 0);                          \
         if (errno)                                              \
-            CNE_ERR_RET("Unable to parse number '%s'\n", (_v)); \
+            FGEN_ERR_RET("Unable to parse number '%s'\n", (_v)); \
         _x;                                                     \
     })
 
@@ -61,7 +51,7 @@ next_layer(fgen_t *fg, frame_t *f, int idx)
     ftable_t *t;
 
     if (idx >= fg->num_layers)
-        CNE_ERR_RET("Next layer %d >= %d\n", idx, fg->num_layers);
+        FGEN_ERR_RET("Next layer %d >= %d\n", idx, fg->num_layers);
 
     t = fg->opts[idx].tbl;
 
@@ -77,7 +67,7 @@ _encode_opts(char *str, char **toks, int nb_toks)
 
     len = strlen(str);
     if (len)
-        return cne_strtok(str, ", ", toks, nb_toks);
+        return fgen_strtok(str, ", ", toks, nb_toks);
 
     return 0;
 }
@@ -91,7 +81,7 @@ _encode_vars(char *str, char **vars, int nb_vars)
 
     len = strlen(str);
     if (len) {
-        cnt = cne_strtok(str, "= ", vars, nb_vars);
+        cnt = fgen_strtok(str, "= ", vars, nb_vars);
         return (cnt < 0 || cnt != 2) ? -1 : cnt;
     }
 
@@ -103,7 +93,7 @@ parser_kvp(char *param, const char **kvps, int len, char **val)
 {
     char *kvp[FGEN_MAX_KVP_TOKENS] = {0};
 
-    if (_encode_vars(param, kvp, cne_countof(kvp)) > 0) {
+    if (_encode_vars(param, kvp, fgen_countof(kvp)) > 0) {
         for (int i = 0; i < len; i++) {
             if (strncasecmp(kvp[0], kvps[i], strlen(kvps[i])) == 0) {
                 *val = kvp[1];
@@ -133,14 +123,14 @@ _encode_ether(fgen_t *fg, frame_t *f, int lidx)
     fgen_data_len(f) += opt->length;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    num = _encode_opts(opt->param_str, fg->params, cne_countof(fg->params));
+    num = _encode_opts(opt->param_str, fg->params, fgen_countof(fg->params));
     if (num < 0)
-        CNE_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
+        FGEN_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
 
     for (int i = 0; i < num; i++) {
-        switch (parser_kvp(fg->params[i], kvps, cne_countof(kvps), &val)) {
+        switch (parser_kvp(fg->params[i], kvps, fgen_countof(kvps), &val)) {
         case 0:
             ether_unformat_addr(val, (struct ether_addr *)eth->ether_dhost);
             break;
@@ -148,29 +138,29 @@ _encode_ether(fgen_t *fg, frame_t *f, int lidx)
             ether_unformat_addr(val, (struct ether_addr *)eth->ether_shost);
             break;
         default:
-            CNE_ERR_RET("Ether: Invalid key '%s'\n", val);
+            FGEN_ERR_RET("Ether: Invalid key '%s'\n", val);
         }
     }
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_DOT1Q_TYPE:
-        eth->ether_type = htons(CNE_ETHER_TYPE_VLAN);
+        eth->ether_type = htons(FGEN_ETHER_TYPE_VLAN);
         break;
     case FGEN_DOT1AD_TYPE:
-        eth->ether_type = htons(CNE_ETHER_TYPE_QINQ);
+        eth->ether_type = htons(FGEN_ETHER_TYPE_QINQ);
         break;
     case FGEN_IPV4_TYPE:
-        eth->ether_type = htons(CNE_ETHER_TYPE_IPV4);
+        eth->ether_type = htons(FGEN_ETHER_TYPE_IPV4);
         break;
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         eth->ether_type = htons(0x9000);
         break;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_ETHER_TYPE;
 }
@@ -179,23 +169,23 @@ static int
 _encode_vlan(fgen_t *fg, frame_t *f, int lidx, bool is_dot1ad)
 {
     fopt_t *opt = FGEN_LOPT(fg, lidx);
-    struct cne_vlan_hdr *vlan;
+    struct fgen_vlan_hdr *vlan;
     uint16_t vid = 1, prio = 7, cfi = 0;
     const char *kvps[] = {"vlan", "prio", "cfi"};
     char *val;
     int num;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO(
+        FGEN_INFO(
             "[magenta]params[]:'[orange]%s[]' [magenta]is a [orange]%s [magenta]type packet[]\n",
             opt->param_str, (is_dot1ad) ? "Dot1AD" : "Dot1Q");
 
-    num = _encode_opts(opt->param_str, fg->params, cne_countof(fg->params));
+    num = _encode_opts(opt->param_str, fg->params, fgen_countof(fg->params));
     if (num < 0)
-        CNE_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
+        FGEN_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
 
     for (int i = 0; i < num; i++) {
-        switch (parser_kvp(fg->params[i], kvps, cne_countof(kvps), &val)) {
+        switch (parser_kvp(fg->params[i], kvps, fgen_countof(kvps), &val)) {
         case 0:
             vid = STRTOL(val) & 0xFFF;
             break;
@@ -206,15 +196,15 @@ _encode_vlan(fgen_t *fg, frame_t *f, int lidx, bool is_dot1ad)
             cfi = ((STRTOL(val) & 0x1) << 12);
             break;
         default:
-            CNE_ERR_RET("Dot1Q: Invalid key '%s'\n", val);
+            FGEN_ERR_RET("Dot1Q: Invalid key '%s'\n", val);
         }
     }
 
     /* Grab the current offset for the vlan pointer */
-    vlan = fgen_mtod_offset(f, struct cne_vlan_hdr *, fgen_data_len(f));
+    vlan = fgen_mtod_offset(f, struct fgen_vlan_hdr *, fgen_data_len(f));
 
     /* Update the data len and the pkt_len value */
-    opt->length = sizeof(struct cne_vlan_hdr);
+    opt->length = sizeof(struct fgen_vlan_hdr);
     fgen_data_len(f) += opt->length;
 
     vlan->vlan_tci  = htons(vid | prio | cfi);
@@ -223,24 +213,24 @@ _encode_vlan(fgen_t *fg, frame_t *f, int lidx, bool is_dot1ad)
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_DOT1Q_TYPE:
         if (is_dot1ad)
-            vlan->eth_proto = htons(CNE_ETHER_TYPE_VLAN);
+            vlan->eth_proto = htons(FGEN_ETHER_TYPE_VLAN);
         else
-            CNE_ERR_RET("Invalid next layer for Dot1AD\n");
+            FGEN_ERR_RET("Invalid next layer for Dot1AD\n");
         break;
     case FGEN_IPV4_TYPE:
-        vlan->eth_proto = htons(CNE_ETHER_TYPE_IPV4);
+        vlan->eth_proto = htons(FGEN_ETHER_TYPE_IPV4);
         break;
     case FGEN_DOT1AD_TYPE:
-        vlan->eth_proto = htons(CNE_ETHER_TYPE_QINQ);
+        vlan->eth_proto = htons(FGEN_ETHER_TYPE_QINQ);
         break;
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return (is_dot1ad) ? FGEN_DOT1AD_TYPE : FGEN_DOT1Q_TYPE;
 }
@@ -261,33 +251,33 @@ static int
 _encode_ipv4(fgen_t *fg, frame_t *f, int lidx)
 {
     fopt_t *opt = FGEN_LOPT(fg, lidx);
-    struct cne_ipv4_hdr *hdr;
-    struct cne_udp_hdr *udp;
-    struct cne_tcp_hdr *tcp;
+    struct fgen_ipv4_hdr *hdr;
+    struct fgen_udp_hdr *udp;
+    struct fgen_tcp_hdr *tcp;
     const char *kvps[] = {"dst", "src"};
     char *val;
     uint16_t offset, total_length;
     int num;
 
     offset = fgen_data_len(f);
-    hdr    = fgen_mtod_offset(f, struct cne_ipv4_hdr *, offset);
+    hdr    = fgen_mtod_offset(f, struct fgen_ipv4_hdr *, offset);
     memset(hdr, 0, sizeof(*hdr));
 
-    hdr->version_ihl  = (IPVERSION << 4) | (sizeof(struct cne_ipv4_hdr) / 4);
+    hdr->version_ihl  = (IPVERSION << 4) | (sizeof(struct fgen_ipv4_hdr) / 4);
     hdr->packet_id    = htons(1);
     hdr->time_to_live = 64;
     inet_pton(AF_INET, "192.10.0.2", &hdr->dst_addr);
     inet_pton(AF_INET, "192.10.0.1", &hdr->src_addr);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    num = _encode_opts(opt->param_str, fg->params, cne_countof(fg->params));
+    num = _encode_opts(opt->param_str, fg->params, fgen_countof(fg->params));
     if (num < 0)
-        CNE_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
+        FGEN_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
 
     for (int i = 0; i < num; i++) {
-        switch (parser_kvp(fg->params[i], kvps, cne_countof(kvps), &val)) {
+        switch (parser_kvp(fg->params[i], kvps, fgen_countof(kvps), &val)) {
         case 0:
             inet_pton(AF_INET, val, &hdr->dst_addr);
             break;
@@ -295,11 +285,11 @@ _encode_ipv4(fgen_t *fg, frame_t *f, int lidx)
             inet_pton(AF_INET, val, &hdr->src_addr);
             break;
         default:
-            CNE_ERR_RET("IPv4: Invalid key '%s'\n", val);
+            FGEN_ERR_RET("IPv4: Invalid key '%s'\n", val);
         }
     }
 
-    fgen_data_len(f) += sizeof(struct cne_ipv4_hdr);
+    fgen_data_len(f) += sizeof(struct fgen_ipv4_hdr);
 
     hdr->next_proto_id = 0;
     int nxt            = next_layer(fg, f, ++lidx);
@@ -313,25 +303,25 @@ _encode_ipv4(fgen_t *fg, frame_t *f, int lidx)
     case FGEN_UDP_TYPE:
         hdr->next_proto_id = IPPROTO_UDP;
 
-        udp              = (struct cne_udp_hdr *)((char *)hdr + (hdr->version_ihl & 0xf) * 4);
+        udp              = (struct fgen_udp_hdr *)((char *)hdr + (hdr->version_ihl & 0xf) * 4);
         udp->dgram_cksum = 0;
-        udp->dgram_cksum = cne_ipv4_udptcp_cksum(hdr, udp);
+        udp->dgram_cksum = fgen_ipv4_udptcp_cksum(hdr, udp);
         break;
     case FGEN_TCP_TYPE:
         hdr->next_proto_id = IPPROTO_TCP;
 
-        tcp        = (struct cne_tcp_hdr *)((char *)hdr + (hdr->version_ihl & 0xf) * 4);
-        tcp->cksum = cne_ipv4_udptcp_cksum(hdr, tcp);
+        tcp        = (struct fgen_tcp_hdr *)((char *)hdr + (hdr->version_ihl & 0xf) * 4);
+        tcp->cksum = fgen_ipv4_udptcp_cksum(hdr, tcp);
         break;
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
-    hdr->hdr_checksum = cne_ipv4_cksum(hdr);
+    hdr->hdr_checksum = fgen_ipv4_cksum(hdr);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_IPV4_TYPE;
 }
@@ -342,20 +332,20 @@ _encode_ipv6(fgen_t *fg, frame_t *f, int lidx)
     fopt_t *opt = FGEN_LOPT(fg, lidx);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    opt->length = sizeof(struct cne_ipv6_hdr);
+    opt->length = sizeof(struct fgen_ipv6_hdr);
     fgen_data_len(f) += opt->length;
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_IPV6_TYPE;
 }
@@ -364,7 +354,7 @@ static int
 _encode_udp(fgen_t *fg, frame_t *f, int lidx)
 {
     fopt_t *opt = FGEN_LOPT(fg, lidx);
-    struct cne_udp_hdr *hdr;
+    struct fgen_udp_hdr *hdr;
     uint16_t sport, dport;
     const char *kvps[] = {"dport", "sport"};
     char *val;
@@ -372,21 +362,21 @@ _encode_udp(fgen_t *fg, frame_t *f, int lidx)
     int num;
 
     offset = fgen_data_len(f);
-    hdr    = fgen_mtod_offset(f, struct cne_udp_hdr *, offset);
+    hdr    = fgen_mtod_offset(f, struct fgen_udp_hdr *, offset);
     memset(hdr, 0, sizeof(*hdr));
 
     sport = 1234;
     dport = 5678;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    num = _encode_opts(opt->param_str, fg->params, cne_countof(fg->params));
+    num = _encode_opts(opt->param_str, fg->params, fgen_countof(fg->params));
     if (num < 0)
-        CNE_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
+        FGEN_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
 
     for (int i = 0; i < num; i++) {
-        switch (parser_kvp(fg->params[i], kvps, cne_countof(kvps), &val)) {
+        switch (parser_kvp(fg->params[i], kvps, fgen_countof(kvps), &val)) {
         case 0:
             dport = STRTOL(val);
             break;
@@ -394,28 +384,28 @@ _encode_udp(fgen_t *fg, frame_t *f, int lidx)
             sport = STRTOL(val);
             break;
         default:
-            CNE_ERR_RET("UDP: Invalid key '%s'\n", val);
+            FGEN_ERR_RET("UDP: Invalid key '%s'\n", val);
         }
     }
 
-    fgen_data_len(f) += sizeof(struct cne_udp_hdr);
+    fgen_data_len(f) += sizeof(struct fgen_udp_hdr);
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ECHO_TYPE:
         sport = dport = 7;
         break;
     case FGEN_VXLAN_TYPE:
-        sport = dport = CNE_VXLAN_DEFAULT_PORT;
+        sport = dport = FGEN_VXLAN_DEFAULT_PORT;
         break;
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
 
     offset = fgen_data_len(f) - offset;
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]UDP Length[] [orange]%u[] Bytes\n", offset);
+        FGEN_INFO("[magenta]UDP Length[] [orange]%u[] Bytes\n", offset);
 
     hdr->dst_port  = htons(dport);
     hdr->src_port  = htons(sport);
@@ -423,7 +413,7 @@ _encode_udp(fgen_t *fg, frame_t *f, int lidx)
     opt->length    = offset;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_UDP_TYPE;
 }
@@ -432,27 +422,27 @@ static int
 _encode_tcp(fgen_t *fg, frame_t *f, int lidx)
 {
     fopt_t *opt = FGEN_LOPT(fg, lidx);
-    struct cne_tcp_hdr *hdr;
+    struct fgen_tcp_hdr *hdr;
     uint16_t sport, dport;
     const char *kvps[] = {"dport", "sport"};
     char *val;
     int num;
 
-    hdr = fgen_mtod_offset(f, struct cne_tcp_hdr *, fgen_data_len(f));
+    hdr = fgen_mtod_offset(f, struct fgen_tcp_hdr *, fgen_data_len(f));
     memset(hdr, 0, sizeof(*hdr));
 
     sport = 0x1234;
     dport = 0x1111;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    num = _encode_opts(opt->param_str, fg->params, cne_countof(fg->params));
+    num = _encode_opts(opt->param_str, fg->params, fgen_countof(fg->params));
     if (num < 0)
-        CNE_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
+        FGEN_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
 
     for (int i = 0; i < num; i++) {
-        switch (parser_kvp(fg->params[i], kvps, cne_countof(kvps), &val)) {
+        switch (parser_kvp(fg->params[i], kvps, fgen_countof(kvps), &val)) {
         case 0:
             dport = STRTOL(val);
             break;
@@ -460,11 +450,11 @@ _encode_tcp(fgen_t *fg, frame_t *f, int lidx)
             sport = STRTOL(val);
             break;
         default:
-            CNE_ERR_RET("UDP: Invalid key '%s'\n", val);
+            FGEN_ERR_RET("UDP: Invalid key '%s'\n", val);
         }
     }
 
-    fgen_data_len(f) += sizeof(struct cne_tcp_hdr);
+    fgen_data_len(f) += sizeof(struct fgen_tcp_hdr);
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ECHO_TYPE:
@@ -472,7 +462,7 @@ _encode_tcp(fgen_t *fg, frame_t *f, int lidx)
     case FGEN_VXLAN_TYPE:
         break;
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
@@ -485,7 +475,7 @@ _encode_tcp(fgen_t *fg, frame_t *f, int lidx)
     hdr->src_port  = htons(sport);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_TCP_TYPE;
 }
@@ -494,17 +484,17 @@ static int
 _encode_vxlan(fgen_t *fg, frame_t *f, int lidx)
 {
     fopt_t *opt = FGEN_LOPT(fg, lidx);
-    struct cne_vxlan_hdr *hdr;
+    struct fgen_vxlan_hdr *hdr;
 
-    hdr = fgen_mtod_offset(f, struct cne_vxlan_hdr *, fgen_data_len(f));
+    hdr = fgen_mtod_offset(f, struct fgen_vxlan_hdr *, fgen_data_len(f));
     memset(hdr, 0, sizeof(*hdr));
 
     hdr->vx_vni = htonl(1000 & ((1 << 24) - 1));
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    fgen_data_len(f) += sizeof(struct cne_vxlan_hdr);
+    fgen_data_len(f) += sizeof(struct fgen_vxlan_hdr);
 
     uint8_t next_protocol          = 0;
     const uint32_t instance_Ibit   = (1 << 27);
@@ -513,18 +503,18 @@ _encode_vxlan(fgen_t *fg, frame_t *f, int lidx)
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ETHER_TYPE:
-        next_protocol = CNE_VXLAN_GPE_TYPE_ETH;
+        next_protocol = FGEN_VXLAN_GPE_TYPE_ETH;
         flags |= next_proto_Pbit;
         break;
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
     hdr->vx_flags = htonl(flags | next_protocol);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_VXLAN_TYPE;
 }
@@ -535,19 +525,19 @@ _encode_echo(fgen_t *fg, frame_t *f, int lidx)
     fopt_t *opt = FGEN_LOPT(fg, lidx);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    fgen_data_len(f) += sizeof(struct cne_tcp_hdr);
+    fgen_data_len(f) += sizeof(struct fgen_tcp_hdr);
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_ECHO_TYPE;
 }
@@ -567,19 +557,19 @@ _encode_tsc(fgen_t *fg, frame_t *f, int lidx)
     tsc->tsc_val = 0;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
     fgen_data_len(f) += sizeof(tsc_t);
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_TSC_TYPE;
 }
@@ -590,19 +580,19 @@ _encode_raw(fgen_t *fg, frame_t *f, int lidx)
     fopt_t *opt = FGEN_LOPT(fg, lidx);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    fgen_data_len(f) += sizeof(struct cne_tcp_hdr);
+    fgen_data_len(f) += sizeof(struct fgen_tcp_hdr);
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_RAW_TYPE;
 }
@@ -617,19 +607,19 @@ _encode_payload(fgen_t *fg, frame_t *f, int lidx)
     char *val;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
+        FGEN_INFO("[magenta]params[]:'[orange]%s[]'\n", opt->param_str);
 
-    num = _encode_opts(opt->param_str, fg->params, cne_countof(fg->params));
+    num = _encode_opts(opt->param_str, fg->params, fgen_countof(fg->params));
     if (num < 0)
-        CNE_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
+        FGEN_ERR_RET("Parameters '%s' invalid\n", opt->param_str);
 
     plen = pktlen = fgen_data_len(f);
 
     for (int i = 0; i < num; i++) {
-        switch (parser_kvp(fg->params[i], kvps, cne_countof(kvps), &val)) {
+        switch (parser_kvp(fg->params[i], kvps, fgen_countof(kvps), &val)) {
         case 0: /* Force the frame size to a given length */
             if (only++)
-                CNE_ERR_RET("Can't have append and size at the same time\n");
+                FGEN_ERR_RET("Can't have append and size at the same time\n");
             fsize = STRTOL(val); /* The size includes the CRC length */
 
             if (fsize < ETHER_MIN_LEN)
@@ -645,7 +635,7 @@ _encode_payload(fgen_t *fg, frame_t *f, int lidx)
             break;
         case 1: /* append a given number of bytes to frame */
             if (only++)
-                CNE_ERR_RET("Can't have append and size at the same time\n");
+                FGEN_ERR_RET("Can't have append and size at the same time\n");
             append = STRTOL(val);
             pktlen += append;
             break;
@@ -653,7 +643,7 @@ _encode_payload(fgen_t *fg, frame_t *f, int lidx)
             fill = STRTOL(val);
             break;
         default:
-            CNE_ERR_RET("Payload: Invalid key '%s'\n", val);
+            FGEN_ERR_RET("Payload: Invalid key '%s'\n", val);
         }
     }
 
@@ -664,7 +654,7 @@ _encode_payload(fgen_t *fg, frame_t *f, int lidx)
 
     switch (next_layer(fg, f, ++lidx)) {
     case FGEN_ERROR_TYPE:
-        CNE_ERR_RET("Next layer return error\n");
+        FGEN_ERR_RET("Next layer return error\n");
     default:
         break;
     }
@@ -674,22 +664,22 @@ _encode_payload(fgen_t *fg, frame_t *f, int lidx)
         memset(fgen_mtod_offset(f, char *, pktlen), fill, fgen_data_len(f) - pktlen);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
+        FGEN_INFO("[magenta]Return '[orange]%s[]'\n", parser_type(opt->typ));
 
     return FGEN_PAYLOAD_TYPE;
 }
 
 static int
-_encode_done(fgen_t *fg, frame_t *f, int lidx __cne_unused)
+_encode_done(fgen_t *fg, frame_t *f, int lidx __fgen_unused)
 {
     fopt_t *opt = FGEN_LOPT(fg, lidx);
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Finish up packet parsing. len %d[]\n", fgen_data_len(f));
+        FGEN_INFO("[magenta]Finish up packet parsing. len %d[]\n", fgen_data_len(f));
 
     if (fgen_data_len(f) < ETH_ZLEN) {
         if (fg->flags & FGEN_VERBOSE)
-            CNE_WARN("[magenta]Packet is to short [orange]%d[], [magenta]adjusting to [orange]%d "
+            FGEN_WARN("[magenta]Packet is to short [orange]%d[], [magenta]adjusting to [orange]%d "
                      "[magenta]bytes[]\n",
                      fgen_data_len(f), ETH_ZLEN);
         fgen_data_len(f) = ETH_ZLEN;
@@ -697,14 +687,14 @@ _encode_done(fgen_t *fg, frame_t *f, int lidx __cne_unused)
 
     if (fgen_data_len(f) > ETH_FRAME_LEN) {
         if (fg->flags & FGEN_VERBOSE)
-            CNE_WARN("[magenta]Packet is to long [orange]%d[], [magenta]adjusting to [orange]%d "
+            FGEN_WARN("[magenta]Packet is to long [orange]%d[], [magenta]adjusting to [orange]%d "
                      "[magenta]bytes[]\n",
                      fgen_data_len(f), ETH_FRAME_LEN);
         fgen_data_len(f) = ETH_FRAME_LEN;
     }
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Return '[orange]%s[]' [magenta]pktlen [orange]%d[]\n",
+        FGEN_INFO("[magenta]Return '[orange]%s[]' [magenta]pktlen [orange]%d[]\n",
                  parser_type(opt->typ), fgen_data_len(f));
 
     return FGEN_DONE_TYPE;
@@ -740,7 +730,7 @@ _encode_frame(fgen_t *fg, frame_t *f)
     char *text;
 
     if (!fg || !f || !f->frame_text)
-        CNE_ERR_RET("fgen_t or frame_t or frame_t.frame_text is NULL\n");
+        FGEN_ERR_RET("fgen_t or frame_t or frame_t.frame_text is NULL\n");
 
     memset(fg->params, 0, sizeof(fg->params));
     memset(fg->opts, 0, sizeof(fg->opts));
@@ -751,12 +741,12 @@ _encode_frame(fgen_t *fg, frame_t *f)
 
     text = strdup(f->frame_text);
     if (!text)
-        CNE_ERR_RET("Unable to allocate memory for frame text\n");
+        FGEN_ERR_RET("Unable to allocate memory for frame text\n");
 
     /* Leave the last entry for the done layer function */
-    fg->num_layers = cne_strtok(text, "/", fg->layers, FGEN_MAX_LAYERS - 1);
+    fg->num_layers = fgen_strtok(text, "/", fg->layers, FGEN_MAX_LAYERS - 1);
     if (fg->num_layers <= 0)
-        CNE_ERR_RET("Number of layers is %d\n", fg->num_layers);
+        FGEN_ERR_RET("Number of layers is %d\n", fg->num_layers);
 
     /* Process each layer of the frame, identifying each layer type */
     for (int i = 0; i < fg->num_layers; i++) {
@@ -770,7 +760,7 @@ _encode_frame(fgen_t *fg, frame_t *f)
                 opt = &fg->opts[i];
 
                 if (fg->flags & FGEN_VERBOSE)
-                    CNE_INFO("[magenta]Add layer[] [orange]%d[] - '[orange]%s[]'\n", i, layer);
+                    FGEN_INFO("[magenta]Add layer[] [orange]%d[] - '[orange]%s[]'\n", i, layer);
 
                 opt->typ       = fgen_tbl[j].typ;
                 opt->tbl       = &fgen_tbl[j];
@@ -787,7 +777,7 @@ _encode_frame(fgen_t *fg, frame_t *f)
     opt->param_str = NULL;
 
     if (fg->flags & FGEN_VERBOSE)
-        CNE_INFO("[magenta]Add layer[] [orange]%d[] - [orange]Done[]\n", fg->num_layers - 1);
+        FGEN_INFO("[magenta]Add layer[] [orange]%d[] - [orange]Done[]\n", fg->num_layers - 1);
 
     /* Parse the layers */
     if (next_layer(fg, f, 0) < 0)
@@ -795,7 +785,7 @@ _encode_frame(fgen_t *fg, frame_t *f)
 
     if (fg->flags & FGEN_DUMP_DATA) {
         fgen_print_frame(NULL, f);
-        cne_hexdump(NULL, NULL, f->data, f->data_len);
+        fgen_hexdump(NULL, NULL, f->data, f->data_len);
     }
 
 leave:

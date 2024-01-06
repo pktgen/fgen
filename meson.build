@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2019-2023 Intel Corporation
-# Copyright (c) 2022 Red Hat, Inc.
+# Copyright (c) 2023-2024 Intel Corporation
 
 project('fgen', 'C', 'cpp',
     # Get version number from file.
@@ -42,22 +41,22 @@ pver = meson.project_version().split('.')
 major_version = '@0@.@1@'.format(pver.get(0), pver.get(1))
 
 # extract all version information into the build configuration
-cne_conf.set('FGEN_VER_YEAR', pver.get(0).to_int())
-cne_conf.set('FGEN_VER_MONTH', pver.get(1).to_int())
+fgen_conf.set('FGEN_VER_YEAR', pver.get(0).to_int())
+fgen_conf.set('FGEN_VER_MONTH', pver.get(1).to_int())
 if pver.get(2).contains('-rc')
     rc_ver = pver.get(2).split('-rc')
-    cne_conf.set('FGEN_VER_MINOR', rc_ver.get(0).to_int())
-    cne_conf.set_quoted('CNE_VER_SUFFIX', '-rc')
-    cne_conf.set('FGEN_VER_RELEASE', rc_ver.get(1).to_int())
+    fgen_conf.set('FGEN_VER_MINOR', rc_ver.get(0).to_int())
+    fgen_conf.set_quoted('FGEN_VER_SUFFIX', '-rc')
+    fgen_conf.set('FGEN_VER_RELEASE', rc_ver.get(1).to_int())
 else
-    cne_conf.set('FGEN_VER_MINOR', pver.get(2).to_int())
-    cne_conf.set_quoted('FGEN_VER_SUFFIX', '')
+    fgen_conf.set('FGEN_VER_MINOR', pver.get(2).to_int())
+    fgen_conf.set_quoted('FGEN_VER_SUFFIX', '')
 # for actual, non-rc releases, set the release value to 99 to ensure releases
 # have higher version numbers than their respective release candidates
-    cne_conf.set('FGEN_VER_RELEASE', 99)
+    fgen_conf.set('FGEN_VER_RELEASE', 99)
 endif
 
-cne_conf.set10('CNE_ENABLE_ASSERT', enable_asserts)
+fgen_conf.set10('FGEN_ENABLE_ASSERT', enable_asserts)
 
 machine = get_option('machine')
 
@@ -74,16 +73,16 @@ if machine == 'default'
     endif
 endif
 
-cne_conf.set('FGEN_MACHINE', machine)
-cne_conf.set('FGEN_CACHE_LINE_SIZE', 64)
+fgen_conf.set('FGEN_MACHINE', machine)
+fgen_conf.set('FGEN_CACHE_LINE_SIZE', 64)
 
 machine_args += '-march=' + machine
 
 toolchain = cc.get_id()
-cne_conf.set_quoted('FGEN_TOOLCHAIN', toolchain)
-cne_conf.set('FGEN_TOOLCHAIN_' + toolchain.to_upper(), 1)
+fgen_conf.set_quoted('FGEN_TOOLCHAIN', toolchain)
+fgen_conf.set('FGEN_TOOLCHAIN_' + toolchain.to_upper(), 1)
 
-cne_conf.set('FGEN_ARCH_64', cc.sizeof('void *') == 8)
+fgen_conf.set('FGEN_ARCH_64', cc.sizeof('void *') == 8)
 
 add_project_link_arguments('-Wl,--no-as-needed', language: 'c')
 if get_option('buildtype') == 'release'
@@ -115,7 +114,7 @@ extra_ldflags += '-ldl'
 has_libnuma = 0
 numa_dep = dependency('numa', required: false, static: use_static_libs)
 if numa_dep.found() and cc.has_header('numaif.h')
-    cne_conf.set10('FGEN_HAS_LIBNUMA', true)
+    fgen_conf.set10('FGEN_HAS_LIBNUMA', true)
     has_libnuma = 1
     add_project_link_arguments('-lnuma', language: 'c')
     extra_ldflags += '-lnuma'
@@ -125,14 +124,14 @@ endif
 libbsd = dependency('libbsd', required: true, static: use_static_libs)
 if libbsd.found()
     add_project_link_arguments('-lbsd', language: 'c')
-    cne_conf.set('CNE_USE_LIBBSD', 1)
+    fgen_conf.set('FGEN_USE_LIBBSD', 1)
 endif
 
 # check for libjson-c
 json_c = dependency('json-c', required: true, static: use_static_libs)
 if json_c.found()
     add_project_link_arguments('-ljson-c', language: 'c')
-    cne_conf.set('CNE_USE_JSON_C', 1)
+    fgen_conf.set('FGEN_USE_JSON_C', 1)
     extra_ldflags += '-ljson-c'
 endif
 
@@ -207,7 +206,7 @@ else
     fgen_conf.set('FGEN_ARCH', 'i686')
 endif
 
-cne_conf.set('FGEN_COMPILE_TIME_CPUFLAGS', ','.join(compile_time_cpuflags))
+fgen_conf.set('FGEN_COMPILE_TIME_CPUFLAGS', ','.join(compile_time_cpuflags))
 
 # specify -D_GNU_SOURCE unconditionally
 add_project_arguments('-D_GNU_SOURCE', language: 'c')
@@ -222,17 +221,20 @@ add_project_arguments(['-include', build_cfg_file] + machine_args, language: 'cp
 
 # write the build config into the fgen include directory
 configure_file(output: build_cfg_file,
-    configuration: cne_conf,
+    configuration: fgen_conf,
     install_dir: join_paths(get_option('includedir'), meson.project_name().to_lower()))
 
 build_cfg = declare_dependency(include_directories: include_directories('.'))
 
 ##################################################################
 
+subdir('include')           # Include files
+subdir('log')               # Build log
+subdir('mmap')              # Build mmap
 subdir('src')               # Build Libs
 subdir('docs')              # Build Docs
 subdir('test')              # Build Tests
-subdir('examples')          # Build Examples
+subdir('examples')          # Examples
 
 libfgen_a = []
 libfgen_so = []

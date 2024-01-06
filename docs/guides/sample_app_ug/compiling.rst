@@ -4,8 +4,8 @@
 Compiling the Sample Applications
 =================================
 
-Sample applications are built automatically as part of the CNDP build. For more information please
-see the :ref:`Building CNDP <building-cndp>` section.
+Sample applications are built automatically as part of the FGEN build. For more information please
+see the :ref:`Building FGEN <building-fgen>` section.
 
 .. note::
 

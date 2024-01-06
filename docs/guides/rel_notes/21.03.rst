@@ -1,7 +1,7 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
     Copyright (c) 2019-2022 Intel Corporation.
 
-CNDP Release 21.03
+FGEN Release 21.03
 ==================
 
 New Features
@@ -18,7 +18,7 @@ New Features
 Some notable changes
 --------------------
 * Remove the need for libjansson support.
-* Change the build process to not install into cndp/usr directory, but 'make install'.
+* Change the build process to not install into fgen/usr directory, but 'make install'.
 * Replace make dist-clean with uninstall
 
 

@@ -10,27 +10,27 @@ The API headers are grouped by topic:
 
 - **cne**:
   [cne]                (@ref cne.h),
-  [cne_private]        (@ref cne_private.h),
-  [cne_system]         (@ref cne_system.h),
+  [fgen_private]        (@ref fgen_private.h),
+  [fgen_system]         (@ref fgen_system.h),
   [uid]                (@ref uid.h)
 
 - **cnet**:
   [cnet]               (@ref cnet.h)
 
 - **containers**:
-  [ring]               (@ref cne_ring_api.h),
-  [tailq]              (@ref cne_tailq.h)
+  [ring]               (@ref fgen_ring_api.h),
+  [tailq]              (@ref fgen_tailq.h)
 
 - **CPU arch**:
-  [branch prediction]  (@ref cne_branch_prediction.h),
-  [cache prefetch]     (@ref cne_prefetch.h),
-  [CPU flags]          (@ref cne_cpuflags.h),
-  [instruction set]    (@ref cne_isa.h),
-  [SIMD]               (@ref cne_vect.h),
-  [byte order]         (@ref cne_byteorder.h)
+  [branch prediction]  (@ref fgen_branch_prediction.h),
+  [cache prefetch]     (@ref fgen_prefetch.h),
+  [CPU flags]          (@ref fgen_cpuflags.h),
+  [instruction set]    (@ref fgen_isa.h),
+  [SIMD]               (@ref fgen_vect.h),
+  [byte order]         (@ref fgen_byteorder.h)
 
 - **CPU multicore**:
-  [per-thread]         (@ref cne_per_thread.h)
+  [per-thread]         (@ref fgen_per_thread.h)
 
 - **device**:
   [pktdev]             (@ref pktdev.h),
@@ -40,10 +40,10 @@ The API headers are grouped by topic:
   [xskdev]             (@ref xskdev.h)
 
 - **hash**:
-  [hash]               (@ref cne_hash.h)
+  [hash]               (@ref fgen_hash.h)
 
 - **logging**:
-  [log]                (@ref cne_log.h)
+  [log]                (@ref fgen_log.h)
 
 - **memory**:
   [mempool]            (@ref mempool.h),
@@ -51,25 +51,25 @@ The API headers are grouped by topic:
   [mempool_ring]       (@ref mempool_ring.h)
 
 - **misc**:
-  [common]             (@ref cne_common.h),
-  [event]              (@ref cne_event.h),
+  [common]             (@ref fgen_common.h),
+  [event]              (@ref fgen_event.h),
   [hexdump]            (@ref hexdump.h),
   [kvargs]             (@ref kvargs.h),
-  [string]             (@ref cne_strings.h),
+  [string]             (@ref fgen_strings.h),
   [uds]                (@ref uds.h),
-  [version]            (@ref cne_version.h)
+  [version]            (@ref fgen_version.h)
 
 - **mmap**:
-  [mmap]               (@ref cne_mmap.h),
+  [mmap]               (@ref fgen_mmap.h),
   [mmap_private]       (@ref mmap_private.h)
 
 - **netdev_funcs**:
   [netdev_funcs]       (@ref netdev_funcs.h)
 
 - **os abstraction**:
-  [stdio]              (@ref cne_stdio.h),
-  [system]             (@ref cne_system.h),
-  [tty]                (@ref cne_tty.h)
+  [stdio]              (@ref fgen_stdio.h),
+  [system]             (@ref fgen_system.h),
+  [tty]                (@ref fgen_tty.h)
 
 - **pktmbuf**:
   [pktmbuf]            (@ref pktmbuf.h),
@@ -79,14 +79,14 @@ The API headers are grouped by topic:
   [acl]                (@ref acl.h),
   [cli]                (@ref cli.h),
   [cthread]            (@ref cthread_api.h),
-  [dsa]                (@ref cne_dsa.h),
-  [fib]                (@ref cne_fib.h),
-  [graph]              (@ref cne_graph.h),
+  [dsa]                (@ref fgen_dsa.h),
+  [fib]                (@ref fgen_fib.h),
+  [graph]              (@ref fgen_graph.h),
   [hmap]               (@ref hmap.h),
   [ibroker]            (@ref ibroker.h),
   [jcfg]               (@ref jcfg.h),
   [metrics]            (@ref metrics.h),
-  [rib]                (@ref cne_rib.h),
-  [thread]             (@ref cne_thread.h),
-  [timer]              (@ref cne_timer.h),
-  [vec]                (@ref cne_vec.h)
+  [rib]                (@ref fgen_rib.h),
+  [thread]             (@ref fgen_thread.h),
+  [timer]              (@ref fgen_timer.h),
+  [vec]                (@ref fgen_vec.h)

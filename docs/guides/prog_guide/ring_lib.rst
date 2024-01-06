@@ -7,7 +7,7 @@ Ring Library
 ============
 
 The ring allows the management of queues.
-Instead of having a linked list of infinite size, the cne_ring has the following properties:
+Instead of having a linked list of infinite size, the fgen_ring has the following properties:
 
 *   FIFO
 
@@ -74,9 +74,9 @@ Use Cases
 
 Use cases for the Ring library include:
 
-    *  Communication between applications in CNDP
+    *  Communication between applications in FGEN
 
-    *  Running a CNDP application with a pseudo ethernet device.
+    *  Running a FGEN application with a pseudo ethernet device.
 
     *  Used by memory pool allocator
 

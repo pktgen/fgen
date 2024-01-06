@@ -10,7 +10,7 @@ API
 BSD
    Berkeley Software Distribution
 
-CNDP
+FGEN
    Cloud Native Data Plane.
 
 Control Plane
@@ -22,7 +22,7 @@ Core
    hyperthreading.
 
 Core Components
-   A set of libraries provided by the CNDP, ring, mempool, pktmbuf and so on.
+   A set of libraries provided by the FGEN, ring, mempool, pktmbuf and so on.
 
 CPU
    Central Processing Unit
@@ -36,7 +36,7 @@ DIMM
    Dual In-line Memory Module
 
 Doxygen
-   A documentation generator used in the CNDP to generate the API reference.
+   A documentation generator used in the FGEN to generate the API reference.
 
 DRAM
    Dynamic Random Access Memory
@@ -148,7 +148,7 @@ SW
    Software
 
 Target
-   In the CNDP, the target is a combination of architecture, machine,
+   In the FGEN, the target is a combination of architecture, machine,
    executive environment and toolchain.  For example:
    i686-native-linux-gcc.
 

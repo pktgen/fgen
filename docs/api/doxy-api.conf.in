@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2020-2023 Intel Corporation
 
-PROJECT_NAME            = CNDP
+PROJECT_NAME            = FGEN
 PROJECT_NUMBER          = @VERSION@
 INPUT                   = @TOPDIR@/doc/api/doxy-api-index.md \
                           @TOPDIR@/lib/cnet/arp \
@@ -108,8 +108,8 @@ FILE_PATTERNS           = acl*.h \
 
 PREDEFINED              = __DOXYGEN__ \
                           __attribute__(x)= \
-                          __cne_unused= \
-                          __cne_aligned=
+                          __fgen_unused= \
+                          __fgen_aligned=
 
 OPTIMIZE_OUTPUT_FOR_C   = YES
 ENABLE_PREPROCESSING    = YES

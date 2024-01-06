@@ -6,7 +6,7 @@
 Crypto Libraries
 ================
 
-CNDP does not implement or wrap any crypto API. The developer is free to choose a crypto
+FGEN does not implement or wrap any crypto API. The developer is free to choose a crypto
 implementation which satisfies their application's requirements. OpenSSL* is an implementation that
 has support for both Intel(R) Multi-Buffer Crypto for OpenSSL* and Intel(R) QuickAssist Technology
 Engine for OpenSSL* (Intel(R) QAT Engine for OpenSSL*). The Multi-Buffer API is preferred when a
@@ -78,7 +78,7 @@ To use the library for, e.g. IPsec ESP Tunnel mode encryption with AES128-GCM, s
       if (job->status != STS_COMPLETED)
          ... job failed ...
 
-The CNDP pktmbuf can be manipulated to insert the outer IPv4 header, ESP header, IV, and append the
+The FGEN pktmbuf can be manipulated to insert the outer IPv4 header, ESP header, IV, and append the
 ESP trailer and ICV.
 
 .. code-block:: C
@@ -91,19 +91,19 @@ ESP trailer and ICV.
    ... encrypt/authenticate payload ...
 
    /* populate outer ip header */
-   oip                  = (struct cne_ipv4_hdr *)(neweth + 1);
-   oip->version_ihl     = CNE_IPV4_VHL_DEF;
+   oip                  = (struct fgen_ipv4_hdr *)(neweth + 1);
+   oip->version_ihl     = FGEN_IPV4_VHL_DEF;
    oip->type_of_service = 0;
    /* length is the length of the old packet, plus new header, plus ESP trailer and ICV */
    oip->total_length    = htobe16(sizeof(*oip) + pay_len + pad_len + 2 + 16);
    oip->next_proto_id   = 50; /* ESP */
    ... remaining ip header fields
-   oip->hdr_checksum    = cne_ipv4_chksum(oip);
+   oip->hdr_checksum    = fgen_ipv4_chksum(oip);
 
    ... populate esp header and IV ...
 
 The Security Association Database (SAD) and Security Policy Database (SPD) can be implemented using
-the CNDP hash or ACL libraries. Finally, routing decisions can be made using the CNDP RIB/FIB
+the FGEN hash or ACL libraries. Finally, routing decisions can be made using the FGEN RIB/FIB
 libraries.
 
 Legal Acknowledgements

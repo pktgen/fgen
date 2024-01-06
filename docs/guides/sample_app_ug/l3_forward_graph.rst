@@ -4,7 +4,7 @@
 L3 Forwarding Graph Sample Application
 ======================================
 
-The L3 Forwarding Graph application is an example using the CNDP graph framework. The application
+The L3 Forwarding Graph application is an example using the FGEN graph framework. The application
 performs layer 3 forwarding using nodes written for the graph framework.
 
 Overview
@@ -15,13 +15,13 @@ The application demonstrates the use of the graph framework and graph nodes ``pk
 
 The forwarding logic starts from Rx, followed by LPM lookup, TTL update, and finally Tx. The
 operations are implemented inside graph nodes. These nodes are interconnected using the graph
-framework. The application main loop needs to walk over graph using ``cne_graph_walk()`` with graph
+framework. The application main loop needs to walk over graph using ``fgen_graph_walk()`` with graph
 objects created one per worker thread.
 
 The lookup method is done by the ``ip4_lookup`` graph node. The ID of the output interface for the
 packet is the next hop returned by the LPM lookup. The set of LPM rules used by the application is
 statically configured and provided to ``ip4_lookup`` graph node and ``ip4_rewrite`` graph node
-using node control API ``cne_node_ip4_route_add()`` and ``cne_node_ip4_rewrite_add()``.
+using node control API ``fgen_node_ip4_route_add()`` and ``fgen_node_ip4_rewrite_add()``.
 
 The sample application only supports IPv4 forwarding.
 
@@ -42,7 +42,7 @@ The following sections describe aspects that are specific to the L3 Forwarding G
 Graph Node Pre-Init Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After device configuration is complete, the lport port ids are passed to ``cne_node_eth_config()``.
+After device configuration is complete, the lport port ids are passed to ``fgen_node_eth_config()``.
 This causes the ``pktdev_rx`` and ``pktdev_tx`` nodes as to be cloned as ``pktdev_rx-X`` and
 ``pktdev_tx-X`` where X represents the port id associated with the node.
 
@@ -53,8 +53,8 @@ This causes the ``pktdev_rx`` and ``pktdev_tx`` nodes as to be cloned as ``pktde
     {
         uint16_t nb_conf = 0;
 
-        CNE_INFO("pktmbuf_t size %ld, udata64 offset %ld\n", sizeof(pktmbuf_t),
-                offsetof(pktmbuf_t, udata64));
+        FGEN_INFO("fgenbuf_t size %ld, udata64 offset %ld\n", sizeof(fgenbuf_t),
+                offsetof(fgenbuf_t, udata64));
 
         /* Pre-init dst MACs for all ports to 02:00:00:00:00:xx */
         for (uint16_t lportid = 0; lportid < pktdev_port_count(); lportid++) {
@@ -66,14 +66,14 @@ This causes the ``pktdev_rx`` and ``pktdev_tx`` nodes as to be cloned as ``pktde
             pktdev_conf[nb_conf++].port_id = lportid;
 
             if (pktdev_macaddr_get(lportid, &addr))
-                CNE_ERR_RET("Unable to get MAC address from lport %d\n", lportid);
+                FGEN_ERR_RET("Unable to get MAC address from lport %d\n", lportid);
 
             ether_addr_copy(&addr, (struct ether_addr *)(val_eth + lportid) + 1);
         }
 
         /* Pktdev node config, skip rx queue mapping */
-        if (cne_node_eth_config(pktdev_conf, nb_conf))
-            CNE_ERR_RET("cne_node_eth_config: failed\n");
+        if (fgen_node_eth_config(pktdev_conf, nb_conf))
+            FGEN_ERR_RET("fgen_node_eth_config: failed\n");
 
         return 0;
     }
@@ -112,20 +112,20 @@ should have Tx capability for every port. But ``pktdev_rx-X`` node is created pe
             add_graph_pattern(gi, name);
         }
 
-        snprintf(name, sizeof(name), "worker_%d", cne_id());
-        CNE_INFO("Create Graph '%s'\n", name);
+        snprintf(name, sizeof(name), "worker_%d", fgen_id());
+        FGEN_INFO("Create Graph '%s'\n", name);
 
-        gi->id = cne_graph_create(name, gi->patterns);
-        if (gi->id == CNE_GRAPH_ID_INVALID)
-            CNE_ERR_GOTO(err, "cne_graph_create(): graph_id '%s' for uid %u\n", name, cne_id());
+        gi->id = fgen_graph_create(name, gi->patterns);
+        if (gi->id == FGEN_GRAPH_ID_INVALID)
+            FGEN_ERR_GOTO(err, "fgen_graph_create(): graph_id '%s' for uid %u\n", name, fgen_id());
 
-        gi->graph = cne_graph_lookup(name);
+        gi->graph = fgen_graph_lookup(name);
         if (!gi->graph)
-            CNE_ERR_GOTO(err, "cne_graph_lookup(): graph '%s' not found\n", name);
+            FGEN_ERR_GOTO(err, "fgen_graph_lookup(): graph '%s' not found\n", name);
 
         return 0;
     err:
-        cne_graph_destroy(gi->id);
+        fgen_graph_destroy(gi->id);
         return -1;
     }
 
@@ -133,8 +133,8 @@ Forwarding data(Route, Next-Hop) addition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once graph objects are created, node specific info like routes and rewrite
-headers are provided at run-time using the ``cne_node_ip4_route_add()`` and
-``cne_node_ip4_rewrite_add()`` APIs.
+headers are provided at run-time using the ``fgen_node_ip4_route_add()`` and
+``fgen_node_ip4_rewrite_add()`` APIs.
 
 .. note::
 
@@ -173,18 +173,18 @@ headers are provided at run-time using the ``cne_node_ip4_route_add()`` and
                     ipv4_l3fwd_lpm_route_array[i].if_out);
 
             /* Use route index 'i' as next hop id */
-            if (cne_node_ip4_route_add(ipv4_l3fwd_lpm_route_array[i].ip,
+            if (fgen_node_ip4_route_add(ipv4_l3fwd_lpm_route_array[i].ip,
                                     ipv4_l3fwd_lpm_route_array[i].depth, i,
-                                    CNE_NODE_IP4_LOOKUP_NEXT_REWRITE) < 0)
-                CNE_ERR_RET("Unable to add ip4 route %s to graph\n", route_str);
+                                    FGEN_NODE_IP4_LOOKUP_NEXT_REWRITE) < 0)
+                FGEN_ERR_RET("Unable to add ip4 route %s to graph\n", route_str);
 
             memcpy(rewrite_data, val_eth + dst_port, rewrite_len);
 
             /* Add next hop rewrite data for id 'i' */
-            if (cne_node_ip4_rewrite_add(i, rewrite_data, rewrite_len, dst_port) < 0)
-                CNE_ERR_RET("Unable to add next hop %u for route %s\n", i, route_str);
+            if (fgen_node_ip4_rewrite_add(i, rewrite_data, rewrite_len, dst_port) < 0)
+                FGEN_ERR_RET("Unable to add next hop %u for route %s\n", i, route_str);
 
-            CNE_INFO("Added route %s, next_hop %u\n", route_str, i);
+            FGEN_INFO("Added route %s, next_hop %u\n", route_str, i);
         }
         return 0;
     }
@@ -194,11 +194,11 @@ Packet Forwarding using Graph Walk
 
 Now that all the device and graph configurations are done and forwarding data is updated, the worker
 threads are launched from the main loop. The main loop needs to continuously call a non-blocking
-API ``cne_graph_walk()`` with it's previously created graph object.
+API ``fgen_graph_walk()`` with it's previously created graph object.
 
 .. note::
 
-    cne_graph_walk() will walk over all the source nodes i.e ``pktdev_rx-X``
+    fgen_graph_walk() will walk over all the source nodes i.e ``pktdev_rx-X``
     associated with a given graph and Receive the available packets and enqueue them
     to the following node ``ip4_lookup`` which enqueues them to ``ip4_rewrite``
     node if LPM lookup succeeds. The ``ip4_rewrite`` node updates Ethernet header
@@ -216,23 +216,23 @@ API ``cne_graph_walk()`` with it's previously created graph object.
         if (thd->group->lcore_cnt > 0)
             pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &thd->group->lcore_bitmap);
 
-        CNE_INFO("Assigned to lcore %d\n", cne_lcore_id());
+        FGEN_INFO("Assigned to lcore %d\n", fgen_lcore_id());
 
         /* Wait for main thread to initialize */
         pthread_barrier_wait(&fwd->barrier);
 
-        gi = &fwd->graph_info[cne_id()];
+        gi = &fwd->graph_info[fgen_id()];
 
         if (initialize_graph(thd, gi))
-            CNE_ERR_GOTO(err, "Initialize_graph() failed\n");
+            FGEN_ERR_GOTO(err, "Initialize_graph() failed\n");
 
         if (initialize_routes())
-            CNE_ERR_GOTO(err, "Initialize_routes() failed\n");
+            FGEN_ERR_GOTO(err, "Initialize_routes() failed\n");
 
-        CNE_INFO("Entering main loop on tid %d, graph %s\n", cne_id(), gi->graph->name);
+        FGEN_INFO("Entering main loop on tid %d, graph %s\n", fgen_id(), gi->graph->name);
 
         while (likely(!thd->quit))
-            cne_graph_walk(gi->graph);
+            fgen_graph_walk(gi->graph);
 
         return;
     err:

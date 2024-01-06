@@ -11,7 +11,7 @@ Sample Applications User Guides
     intro
     compiling
     cli
-    cndpfwd
+    fgenfwd
     cnet_graph
     dlb_test
     hello_world

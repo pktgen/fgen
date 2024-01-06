@@ -6,13 +6,13 @@
 Memif Poll Mode Driver
 ======================
 
-Shared memory packet interface (memif) PMD allows for CNDP and any other client
+Shared memory packet interface (memif) PMD allows for FGEN and any other client
 using memif (DPDK, VPP, libmemif) to communicate using shared memory. Memif is
 Linux only.
 
 The created device transmits packets in a raw format. It can be used with
 Ethernet mode, IP mode, or Punt/Inject. At this moment, only Ethernet mode is
-supported in CNDP memif implementation.
+supported in FGEN memif implementation.
 
 Memif works in two roles: server and client. Client connects to server over an
 existing socket. It is also a producer of shared memory file and initializes
@@ -151,7 +151,7 @@ Files
 
 **Shared memory format**
 
-Region 0 is created by memif driver and contains rings. Client interface exposes CNDP memory (mmap or malloc).
+Region 0 is created by memif driver and contains rings. Client interface exposes FGEN memory (mmap or malloc).
 Instead of using memfd_create() to create new shared file, existing memory segment or mmap region is created an used.
 
 region 0:

@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright(c) 2021 Intel Corporation
+# Copyright(c) 2024 Intel Corporation
 
 sources = files('fgen.c', 'encode.c', 'decode.c')
 headers = files('fgen.h')
 
-deps += [cne, mmap, mempool, pktmbuf, utils]
-
-libfgen = library(libname, sources, install: true, dependencies: deps)
+deps = [include, log, mmap]
+libfgen = library('fgen', sources, install: true, dependencies: deps)
 fgen = declare_dependency(link_with: libfgen, include_directories: include_directories('.'))
 
-cndp_libs += fgen
+fgen_libs += fgen

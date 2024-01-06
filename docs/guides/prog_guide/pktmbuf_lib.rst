@@ -7,7 +7,7 @@ Pktmbuf Library
 ===============
 
 The pktmbuf library provides the ability to allocate and free buffers (pktmbufs)
-that may be used by the CNDP application to store message buffers.
+that may be used by the FGEN application to store message buffers.
 The message buffers are stored in a mempool, using the :ref:`Mempool Library <Mempool_Library>`.
 
 A pktmbuf struct generally carries network packet buffers, but it can actually
@@ -26,11 +26,11 @@ The metadata contains control information such as message type, length, offset t
 and some commonly used metadata checksum offload with protocol header offsets/lengths.
 
 For a newly allocated pktmbuf, the area at which the data begins in the message buffer is
-CNE_PKTMBUF_HEADROOM bytes after the beginning of the buffer, which is cache aligned.
+FGEN_PKTMBUF_HEADROOM bytes after the beginning of the buffer, which is cache aligned.
 Message buffers may be used to carry control information, packets, events,
 and so on between different entities in the system.
 
-:numref:`figure_pktmbuf_layout` shows the basic layout of pktmbuf_t structure related to Mempool structures.
+:numref:`figure_pktmbuf_layout` shows the basic layout of fgenbuf_t structure related to Mempool structures.
 
 .. _figure_pktmbuf_layout:
 
@@ -69,7 +69,7 @@ received to remove having to copy the packet to/from the kernel/userspace.
 A UMEM buffer space can be shared between between multiple AF_XDP sockets, which allows buffers to
 be shared between sockets without needing to copy the packet data. If using multiple UMEMs with
 different AF_XDP sockets plus sending packets between these UMEMs the application would need to
-copy the data. Normally, a set of AF_XDP sockets will share a single UMEM. CNDP uses mempools to
+copy the data. Normally, a set of AF_XDP sockets will share a single UMEM. FGEN uses mempools to
 allocate and free buffers to get the best performance, which means each AF_XDP socket needs to have
 its own mempool set of buffers in the UMEM buffer space.
 
@@ -88,7 +88,7 @@ Buffers Stored in Memory Pools (UMEM)
 ---------------------------------------------
 
 The Buffer Manager uses the :ref:`Mempool Library <Mempool_Library>` to allocate buffers.
-For CNDP we use a mempool to help define and allocate buffers from a UMEM with AF_XDP. When creating a UMEM we use the
+For FGEN we use a mempool to help define and allocate buffers from a UMEM with AF_XDP. When creating a UMEM we use the
 mempool buffer memory as the UMEM buffers memory as in the figure :numref:`umem_mbuf` below.
 An pktmbuf contains a field indicating the pool that it originated from.
 When calling pktmbuf_free(m), the pktmbuf returns to its original pool.
@@ -112,7 +112,7 @@ Allocating and Freeing pktmbufs
 
 Allocating a new pktmbuf requires the user to specify the mempool from which the pktmbuf should be taken.
 For any newly-allocated pktmbuf, it contains one segment, with a length of 0.
-The offset to data is initialized to have some bytes of headroom in the buffer (CNE_PKTMBUF_HEADROOM).
+The offset to data is initialized to have some bytes of headroom in the buffer (FGEN_PKTMBUF_HEADROOM).
 
 Freeing a pktmbuf means returning it into its original mempool.
 The content of an pktmbuf is not modified when it is stored in a pool (as a free pktmbuf).
@@ -133,7 +133,7 @@ This library provides some functions for manipulating the data in a packet pktmb
 
     *  Remove data at the beginning of the buffer (pktmbuf_adj())
 
-    *  Remove data at the end of the buffer (pktmbuf_trim()) Refer to the *CNDP API Reference* for details.
+    *  Remove data at the end of the buffer (fgenbuf_trim()) Refer to the *FGEN API Reference* for details.
 
 Meta Information
 ----------------
@@ -141,6 +141,6 @@ Meta Information
 Some information is stored in the pktmbuf header i.e. data offset, packet length, lport number,
 offload data and other information about the packet. More optional metadata is stored after the
 header in a metadata structure, which part of the headroom of the pktmbuf. The metadata information
-is currently used by the CNET stack to hold more information about the packet.
+is currently used by the FGENT stack to hold more information about the packet.
 
-At this time CNDP does not support chaining of pktmbuf_t structures.
+At this time FGEN does not support chaining of fgenbuf_t structures.

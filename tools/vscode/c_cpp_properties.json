@@ -16,7 +16,7 @@
             "intelliSenseMode": "linux-gcc-x64",
             "forcedInclude": [
                 // should be included by compile-commands, add just in case
-                "${workspaceFolder}/builddir/cne_build_config.h"
+                "${workspaceFolder}/builddir/fgen_build_config.h"
             ],
             // use compiler commands for code analysis, this makes it so that
             // the code model sees the same code compiler does

@@ -4,23 +4,23 @@
 Introduction
 ============
 
-This document contains instructions to install and configure the Cloud Native Data Plane (CNDP).
+This document contains instructions to install and configure the Cloud Native Data Plane (FGEN).
 
 Documentation Roadmap
 ---------------------
 
 The following is a list of documents in the suggested reading order:
 
- * **Getting Started Guide (this document)**: First step to get started with CNDP.
+ * **Getting Started Guide (this document)**: First step to get started with FGEN.
 
  * **Release Notes**: Release-specific information including new features, limitations, and fixed
    and known issues.
 
- * **Programmer's Guide**: The software architecture and contents of CNDP.
+ * **Programmer's Guide**: The software architecture and contents of FGEN.
 
  * **Poll Mode Drivers (PMD) Guide**: The drivers implementing the pktdev API.
 
- * **API Reference**: Detailed information about CNDP functions, data structures, and other
+ * **API Reference**: Detailed information about FGEN functions, data structures, and other
    programming constructs.
 
  * **Sample Applications User Guide**: Describe the collection of sample applications. Each chapter
@@ -29,23 +29,23 @@ The following is a list of documents in the suggested reading order:
 
  * **Test-cne**: Describe the unit test framework.
 
-.. _building-cndp:
+.. _building-fgen:
 
-System Requirements and Building CNDP
+System Requirements and Building FGEN
 =====================================
 
-This chapter describes the packages required to compile CNDP. It assumes you are building on an
+This chapter describes the packages required to compile FGEN. It assumes you are building on an
 Ubuntu 21.04 host.
 
-To bypass manual installation, use the ansible scripts provided by CNDP in the section:
-`Installation of CNDP requirements using Ansible`_.
+To bypass manual installation, use the ansible scripts provided by FGEN in the section:
+`Installation of FGEN requirements using Ansible`_.
 
 BIOS Settings
 -------------
 
-No special BIOS settings are needed to use CNDP.
+No special BIOS settings are needed to use FGEN.
 
-Install CNDP Manually
+Install FGEN Manually
 ---------------------
 
 System Software
@@ -68,7 +68,7 @@ System Software
 
 * OS is Ubuntu 20.04 or later. Other Linux versions work, but this documentation assumes Ubuntu.
 
-* CNDP requires the following packages, some of which have recursive dependencies:
+* FGEN requires the following packages, some of which have recursive dependencies:
 
   * pkg-config
   * libbsd-dev
@@ -157,12 +157,12 @@ Optionally update apt-get.
 
    sudo apt-get update
 
-Apt-get is used to install the required packages to build CNDP and its dependencies.
+Apt-get is used to install the required packages to build FGEN and its dependencies.
 
 Build libbpf
 ~~~~~~~~~~~~
 
-The `libbpf <https://github.com/libbpf/libbpf>`_ is a dependency of CNDP. Starting with Ubuntu 20.10
+The `libbpf <https://github.com/libbpf/libbpf>`_ is a dependency of FGEN. Starting with Ubuntu 20.10
 the libbpf libraries can be installed using apt-get. For earlier Ubuntu versions, or for users who
 want the latest code, it can be installed from source.
 
@@ -200,10 +200,10 @@ bottom of the file.
    sudo vim /etc/ld.so.conf.d/x86_64-linux-gnu.conf   # add /usr/lib64 to file
    sudo ldconfig     # force ldconfig to detect changes
 
-Build CNDP
+Build FGEN
 ~~~~~~~~~~
 
-Install packages to build CNDP
+Install packages to build FGEN
 
 .. code-block:: console
 
@@ -216,13 +216,13 @@ Optionally install packages to build documentation
 
    sudo apt-get install -y doxygen python3-sphinx
 
-Clone and build CNDP
+Clone and build FGEN
 ^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
-   git clone https://github.com/CloudNativeDataPlane/cndp.git
-   cd cndp
+   git clone https://github.com/CloudNativeDataPlane/fgen.git
+   cd fgen
    make
 
 Other targets exist, most are wrappers around tools/cne-build.sh.
@@ -231,7 +231,7 @@ Other targets exist, most are wrappers around tools/cne-build.sh.
 
    make help
 
-or rebuild will clean and build CNDP with -O3
+or rebuild will clean and build FGEN with -O3
 
 .. code-block:: console
 
@@ -259,7 +259,7 @@ Need to do a *'make uninstall clean build'* or *'make static_build=1 uninstall c
 commands. If you have both types of libraries the quickest way is to do 'rm -fr usr/local/\*' **No leading '/'**.
 
 .. note:: **(Do NOT use rm -fr /usr/local/\*)**, note the leading **'/'** should **NOT** be present or you can remove
-  your /usr/local directory if running as root. You should not be building CNDP
+  your /usr/local directory if running as root. You should not be building FGEN
   as root as too many problems like this one can happen.
 
 .. code-block:: console
@@ -273,7 +273,7 @@ or use 'rebuild' instead of 'clean build' which the same thing.
    make static_build=1 uninstall rebuild
 
 
-Run CNDP examples
+Run FGEN examples
 ^^^^^^^^^^^^^^^^^
 
 helloworld
@@ -288,10 +288,10 @@ The most basic example is ``helloworld``.
    hello world! from thread index 0 for index 0
    Ctrl-C to exit
 
-cndpfwd
+fgenfwd
 """""""
 
-An example that uses networking is ``cndpfwd``. It requires the underlying network interface
+An example that uses networking is ``fgenfwd``. It requires the underlying network interface
 uses, e.g. AF_XDP sockets. Make sure the kernel on which you intend to run the application
 supports AF_XDP sockets, i.e. CONFIG_XDP_SOCKETS=y.
 
@@ -306,23 +306,23 @@ Configure an ethtool filter to steer packets to a specific queue.
    sudo ethtool -N <devname> flow-type udp4 dst-port <dport> action <qid>
    sudo ip link set dev <devname> up
 
-Instruct ``cndpfwd`` to receive, count, and drop all packets on the previously configured
-queue. To configure ``cndpfwd``, edit the examples/cndpfwd/fwd.jsonc configuration file. Make
+Instruct ``fgenfwd`` to receive, count, and drop all packets on the previously configured
+queue. To configure ``fgenfwd``, edit the examples/fgenfwd/fwd.jsonc configuration file. Make
 sure the "lports" section has the same netdev name and queue id for which the ethtool filter
 is configured. Make sure the "threads" section has the correct "lports" configured. Then
 launch the application, specifying the updated configuration file.
 
 .. code-block:: console
 
-   sudo ./builddir/examples/cndpfwd/cndpfwd -c examples/cndpfwd/fwd.jsonc drop
+   sudo ./builddir/examples/fgenfwd/fgenfwd -c examples/fgenfwd/fwd.jsonc drop
 
 
-Installation of CNDP requirements using Ansible
+Installation of FGEN requirements using Ansible
 -----------------------------------------------
 
-CNDP provides an Ansible playbook to install all CNDP dependencies and setup the CNDP env.
+FGEN provides an Ansible playbook to install all FGEN dependencies and setup the FGEN env.
 
-Though CNDP can run on many distributions and kernels, the preferred environment is for an Ubuntu
+Though FGEN can run on many distributions and kernels, the preferred environment is for an Ubuntu
 20.04 installation. This is chosen as its the most recent LTS version, and the kernel can be
 updated from the package manager to one which natively supports many AF_XDP features.
 
@@ -359,7 +359,7 @@ As root on both nodes run:
 
 where <target> is an IP address or localhost.
 
-CNDP Ansible tree
+FGEN Ansible tree
 ~~~~~~~~~~~~~~~~~
 
 Below is the full directory tree of Ansible playbooks and roles.
@@ -405,7 +405,7 @@ Three playbooks are provided:
    runs.
 
 #. localhost-post-kernel-install.yml: Installs any additional libraries needed for
-   CNDP after the Kernel is updated and rebooted.
+   FGEN after the Kernel is updated and rebooted.
 
 Before running the playbooks it's important to modify the following files:
 
@@ -428,10 +428,10 @@ Running the Ansible playbook
 
    You will need to manually reboot the host after using the localhost-kernel-install.yml playbook
 
-Building CNDP
+Building FGEN
 ~~~~~~~~~~~~~
 
-After running Ansible to install all the dependencies, CNDP can be built by typing `make` in the
+After running Ansible to install all the dependencies, FGEN can be built by typing `make` in the
 top level dir:
 
 .. code-block:: console

@@ -4,19 +4,19 @@
 
 #include <stdio.h>             // for size_t, EOF, NULL
 #include <getopt.h>            // for getopt_long, option
-#include <cne_mmap.h>          // for MMAP_HUGEPAGE_4KB, MMAP_HUGEPAGE_2MB
+#include <fgen_mmap.h>          // for MMAP_HUGEPAGE_4KB, MMAP_HUGEPAGE_2MB
 #include <tst_info.h>          // for tst_cleanup, tst_error, tst_end, tst_s...
 #include <unistd.h>            // for getpagesize
 #include <sys/stat.h>          // for chmod
 #include <bsd/string.h>        // for strlcpy
 #include <time.h>
 #include <pcap.h>
-#include <cne_common.h>        // for CNE_USED, cne_countof
+#include <fgen_common.h>        // for FGEN_USED, fgen_countof
 #include <cne.h>
-#include <cne_log.h>
+#include <fgen_log.h>
 #include <bits/getopt_core.h>        // for optind
 #include <fgen.h>
-#include <cne_strings.h>
+#include <fgen_strings.h>
 
 #include "fgen_test.h"
 
@@ -87,34 +87,34 @@ _open_pcap(void)
 }
 
 static int
-fgen_start(tst_info_t *tst __cne_unused, bool create_pcap, int flags)
+fgen_start(tst_info_t *tst __fgen_unused, bool create_pcap, int flags)
 {
     fgen_t *fg                  = NULL;
     struct pcap_pkthdr pcap_hdr = {0};
 
     fg = fgen_create(16, 0, flags);
     if (!fg)
-        CNE_ERR_GOTO(leave, "Failed to create frame generator object\n");
+        FGEN_ERR_GOTO(leave, "Failed to create frame generator object\n");
 
     if (strlen(fgen_filename) > 0) {
-        cne_printf("  [magenta]Loading file[] '[orange]%s[]'\n", fgen_filename);
+        fgen_printf("  [magenta]Loading file[] '[orange]%s[]'\n", fgen_filename);
         if (fgen_load_file(fg, fgen_filename) < 0)
-            CNE_ERR_GOTO(leave, "Failed to load the fgen file\n");
+            FGEN_ERR_GOTO(leave, "Failed to load the fgen file\n");
     } else {
-        cne_printf("  [magenta]Loading [orange]Default [magenta]Frames[]\n");
-        if (fgen_load_strings(fg, default_strings, cne_countof(default_strings)) < 0)
-            CNE_ERR_GOTO(leave, "Failed to load fgen strings\n");
+        fgen_printf("  [magenta]Loading [orange]Default [magenta]Frames[]\n");
+        if (fgen_load_strings(fg, default_strings, fgen_countof(default_strings)) < 0)
+            FGEN_ERR_GOTO(leave, "Failed to load fgen strings\n");
     }
-    cne_printf("  [magenta]Found [orange]%d [magenta]packets[]\n", fgen_frame_count(fg));
+    fgen_printf("  [magenta]Found [orange]%d [magenta]packets[]\n", fgen_frame_count(fg));
 
     if (create_pcap && _open_pcap() < 0)
-        CNE_ERR_GOTO(leave, "Failed to create PCAP file\n");
+        FGEN_ERR_GOTO(leave, "Failed to create PCAP file\n");
 
     fgen_decode_t *dc = fgen_decode_create();
     if (!dc)
         goto leave;
 
-    cne_printf("\n");
+    fgen_printf("\n");
     for (int i = 0; i < fgen_frame_count(fg); i++) {
         frame_t *f = fgen_get_frame(fg, i);
 

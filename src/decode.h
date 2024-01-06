@@ -1,12 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2021 Intel Corporation
- */
-/*
- * Some logic and code ideas were lifted from DPDK's TGEN library, but
- * modified and simplified to fit into CNDP.
- *
- * The decoding of raw packet into a string feature was not in the
- * TGEN design and added for CNDP.
+ * Copyright(c) 2023-2024 Intel Corporation
  */
 
 #ifndef __FGEN_DECODE_H

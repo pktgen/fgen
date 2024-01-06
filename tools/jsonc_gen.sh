@@ -3,10 +3,10 @@
 # Copyright (c) 2021-2023 Intel Corporation
 
 
-# Bash script to generate jsonc file to be used with cndpfwd app
+# Bash script to generate jsonc file to be used with fgenfwd app
 # This script is dependent on these environment variables being set:
 # AFXDP_DEVICES and LIST_OF_QIDS
-# AFXDP_DEVICES is the list of interfaces that are passed into the cndpfwd app
+# AFXDP_DEVICES is the list of interfaces that are passed into the fgenfwd app
 # When this script is used as part of a K8s deployment, the K8s device plugin
 # would populate the AFXDP_DEVICES environment variable.
 # LIST_OF_QIDS is the list of queue IDs that are used to program ethtool filters.
@@ -183,7 +183,7 @@ cat <<-EOF > ${config_file}
     //    name        - (O) the name of the application
     //    description - (O) the description of the application
     "application": {
-        "name": "cndpfwd",
+        "name": "fgenfwd",
         "description": "A simple packet forwarder for pktdev and xskdev"
     },
 

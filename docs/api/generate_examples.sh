@@ -11,6 +11,6 @@ echo "$API_EXAMPLES: $(find ${EXAMPLES_DIR} -type f \( -name '*.c' -o -name 'mes
 
 exec > "${API_EXAMPLES}"
 printf '/**\n'
-printf '@page examples CNDP Example Programs\n\n'
+printf '@page examples FGEN Example Programs\n\n'
 find "${EXAMPLES_DIR}" -type f -name '*.c' -printf '@example examples/%P\n' | LC_ALL=C sort
 printf '*/\n'

@@ -1,7 +1,7 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
     Copyright (c) 2019-2022 Intel Corporation.
 
-CNDP Release 21.01
+FGEN Release 21.01
 ==================
 
 New Features
@@ -21,7 +21,7 @@ Known Issues
 
 Limitations
 ------------
-* Currently the Prometheus go agent only supports collecting metrics from one CNDP process. It will be extended in the follow up release to support multiple processes.
+* Currently the Prometheus go agent only supports collecting metrics from one FGEN process. It will be extended in the follow up release to support multiple processes.
 
 
 Tested Platforms

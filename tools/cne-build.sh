@@ -2,20 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2019-2023 Intel Corporation
 
-# A simple script to help build CNDP using meson/ninja tools.
+# A simple script to help build FGEN using meson/ninja tools.
 # The script also creates an installed directory called usr/local.
 # The install directory will contain all of the includes and libraries
-# for external applications to build and link with CNDP.
+# for external applications to build and link with FGEN.
 #
 # using 'cne-build.sh help' or 'cne-build.sh -h' or 'cne-build.sh --help' to see help information.
 #
 
 currdir=$(pwd)
 script_dir=$(cd "${BASH_SOURCE[0]%/*}" && pwd -P)
-sdk_dir="${CNE_SDK_DIR:-${script_dir%/*}}"
-target_dir="${CNE_TARGET_DIR:-usr/local}"
-build_dir="${CNE_BUILD_DIR:-${currdir}/builddir}"
-install_path="${CNE_DEST_DIR:-${currdir}}"
+sdk_dir="${FGEN_SDK_DIR:-${script_dir%/*}}"
+target_dir="${FGEN_TARGET_DIR:-usr/local}"
+build_dir="${FGEN_BUILD_DIR:-${currdir}/builddir}"
+install_path="${FGEN_DEST_DIR:-${currdir}}"
 
 export PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-/usr/lib64/pkgconfig}"
 
@@ -36,7 +36,7 @@ if [[ ! "${install_path}" = /* ]]; then
     install_path=${currdir}/${install_path}
 fi
 if [[ "${target_dir}" = .* ]]; then
-    echo "target_dir starts with . or .. if different install prefix required then use CNE_DEST_DIR instead";
+    echo "target_dir starts with . or .. if different install prefix required then use FGEN_DEST_DIR instead";
     exit 1;
 fi
 if [[ "${target_dir}" = /* ]]; then
@@ -46,10 +46,10 @@ fi
 target_path=${install_path%/}/${target_dir%/}
 
 echo "Build environment variables and paths:"
-echo "  CNE_SDK_DIR     : $sdk_dir"
-echo "  CNE_TARGET_DIR  : $target_dir"
-echo "  CNE_BUILD_DIR   : $build_dir"
-echo "  CNE_DEST_DIR    : $install_path"
+echo "  FGEN_SDK_DIR     : $sdk_dir"
+echo "  FGEN_TARGET_DIR  : $target_dir"
+echo "  FGEN_BUILD_DIR   : $build_dir"
+echo "  FGEN_DEST_DIR    : $install_path"
 echo "  PKG_CONFIG_PATH : $PKG_CONFIG_PATH"
 echo "  build_path      : $build_path"
 echo "  target_path     : $target_path"
@@ -180,22 +180,22 @@ ninja_uninstall() {
 }
 
 usage() {
-    echo " Usage: Build CNDP using Meson/Ninja tools"
-    echo "  ** Must be in the top level directory for CNDP"
+    echo " Usage: Build FGEN using Meson/Ninja tools"
+    echo "  ** Must be in the top level directory for FGEN"
     echo "     This tool is in tools/cne-build.sh, but use 'make' which calls this script"
-    echo "     Use 'make' to build CNDP as it allows for multiple targets i.e. 'make clean debug'"
+    echo "     Use 'make' to build FGEN as it allows for multiple targets i.e. 'make clean debug'"
     echo ""
-    echo "     CNE_SDK_DIR    - CNDP source directory path (default: current working directory)"
-    echo "     CNE_TARGET_DIR - Target directory for installed files (default: usr/local)"
-    echo "     CNE_BUILD_DIR  - Build directory name (default: builddir)"
-    echo "     CNE_DEST_DIR   - Destination directory (default: current working directory)"
+    echo "     FGEN_SDK_DIR    - FGEN source directory path (default: current working directory)"
+    echo "     FGEN_TARGET_DIR - Target directory for installed files (default: usr/local)"
+    echo "     FGEN_BUILD_DIR  - Build directory name (default: builddir)"
+    echo "     FGEN_DEST_DIR   - Destination directory (default: current working directory)"
     echo ""
-    echo "  cne-build.sh     - create the 'build_dir' directory if not present and compile CNDP"
-    echo "                     If the 'build_dir' directory exists it will use ninja to build CNDP"
+    echo "  cne-build.sh     - create the 'build_dir' directory if not present and compile FGEN"
+    echo "                     If the 'build_dir' directory exists it will use ninja to build FGEN"
     echo "                     without running meson unless one of the meson.build files were changed"
     echo "    -v             - Enable verbose output"
-    echo "    build          - build CNDP using the 'build_dir' directory"
-    echo "    static         - build CNDP static using the 'build_dir' directory, 'make static build'"
+    echo "    build          - build FGEN using the 'build_dir' directory"
+    echo "    static         - build FGEN static using the 'build_dir' directory, 'make static build'"
     echo "    debug          - turn off optimization, may need to do 'clean' then 'debug' the first time"
     echo "    debugopt       - turn optimization on with -O2, may need to do 'clean' then 'debugopt'"
     echo "                     the first time"
@@ -272,7 +272,7 @@ do
         ;;
 
     'rust-app')
-        echo ">>> Build Rust application. This should be run after building and installing CNDP"
+        echo ">>> Build Rust application. This should be run after building and installing FGEN"
         build_rust_apps
         ;;
 
@@ -285,7 +285,7 @@ do
         if [[ $# -gt 0 ]]; then
             usage
         else
-            echo ">>> Build and install CNDP"
+            echo ">>> Build and install FGEN"
             ninja_build && ninja_install
         fi
         ;;

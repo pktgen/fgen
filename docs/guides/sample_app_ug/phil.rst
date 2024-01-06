@@ -4,7 +4,7 @@
 Phil Sample Application
 =======================
 
-The Phil sample application demonstrates multi-tasking by using the CNDP cthread API and provides
+The Phil sample application demonstrates multi-tasking by using the FGEN cthread API and provides
 two solutions to Dijkstra's famous dining philosopher's problem, 1) a ticket-based one and 2) a
 claim-based one. The ``cthread`` library provides a cooperative multi-tasking environment that
 runs in userspace on a single pthread.
@@ -12,7 +12,7 @@ runs in userspace on a single pthread.
 Running the Application
 -----------------------
 
-After :ref:`building CNDP <building-cndp>`, run the example:
+After :ref:`building FGEN <building-fgen>`, run the example:
 
 .. code-block:: console
 

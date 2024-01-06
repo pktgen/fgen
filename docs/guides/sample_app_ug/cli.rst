@@ -58,7 +58,7 @@ the index value is used to identify the given map string.
 The map string is a special formatted string similar to sprintf(), but the
 format values for % is different. Please look at the cli_mapping() function
 docs for more information. The %s is for any string and %P is used to a portlist
-format e.g. 1-3,5-7,9 as used for CNDP command line notation.
+format e.g. 1-3,5-7,9 as used for FGEN command line notation.
 
 The above array is parsed to match the command line from the user. The first
 map string that matches the user input will be returned from the call to
@@ -140,7 +140,7 @@ environment variables are expanded at execution time.
 .. note::
 
    The CLI library was designed to be used in production code and the Cmdline
-   was not validated to the same standard as other CNDP libraries. The goal
+   was not validated to the same standard as other FGEN libraries. The goal
    is to provide a production CLI design.
 
 The CLI library supports some of the features of the Cmdline library such as,
@@ -155,7 +155,7 @@ The CLI screen code also supports basic color and many other VT100 commands.
 The example application also shows how the CLI application can be extended to
 handle a list of commands and user input.
 
-The example presents a simple command prompt **CNDP-cli:/>** similar to a Unix*
+The example presents a simple command prompt **FGEN-cli:/>** similar to a Unix*
 shell command along with a directory like file system.
 
 Some of the **default** commands contained under /sbin directory are:
@@ -172,12 +172,12 @@ Some of the **default** commands contained under /sbin directory are:
  * **sleep**: wait for a given number of seconds.
  * **rm**: remove a directory, file or command. Removing a file will delete the data.
  * **cls**: clear the screen and redisplay the prompt.
- * **version**: Display the current CNDP version being used.
+ * **version**: Display the current FGEN version being used.
  * **path**: display the current search path for executable commands.
  * **cmap**: Display the current system core and socket information.
  * **hugepages**: Display the current hugepage information.
  * **sizes**: a collection system structure and buffer sizes for debugging.
- * **copyright**: a file containing CNDP copyright information.
+ * **copyright**: a file containing FGEN copyright information.
  * **env**: a command show/set/modify the environment variables.
 
  * **ll**: an alias command to display long ls listing **ls -l**
@@ -224,8 +224,8 @@ To run the application in linux environment, issue the following command:
 
 .. note::
    The example cli application does not require to be run as superuser
-   which means it also does not use CNDP features except for a few routines not requiring
-   CNE initialization.
+   which means it also does not use FGEN features except for a few routines not requiring
+   FGEN initialization.
 
 
 Explanation
@@ -233,10 +233,10 @@ Explanation
 
 The following sections provide some explanation of the code.
 
-CNE Initialization and cli Start
+FGEN Initialization and cli Start
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The first task is the initialization of the Cloud Native Environment (CNE),
+The first task is the initialization of the Cloud Native Environment (FGEN),
 if required for the application.
 
 .. code-block:: c
@@ -375,10 +375,10 @@ Example:
 	        }
 	    }
 
-	    cne_printf("Hello command said: Hello World!! ");
+	    fgen_printf("Hello command said: Hello World!! ");
 	    for(i = 1; i < argc; i++)
-	        cne_printf("%s ", argv[i]);
-	    cne_printf("\n");
+	        fgen_printf("%s ", argv[i]);
+	    fgen_printf("\n");
 
 	    return 0;
 	}
@@ -441,12 +441,12 @@ Example:
 		switch(m->index) {
 			case 10:
 				portlist_parse(argv[1], &portlist);
-				cne_printf("   Show Portlist: %08x\n", portlist);
+				fgen_printf("   Show Portlist: %08x\n", portlist);
 				break;
 			case 20:
 				portlist_parse(argv[1], &portlist);
 				m_ether_aton(argv[3], &mac);
-				cne_printf("   Show Portlist: %08x, MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+				fgen_printf("   Show Portlist: %08x, MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
 						   portlist,
 						   mac.ether_addr_octet[0],
 						   mac.ether_addr_octet[1],
@@ -458,7 +458,7 @@ Example:
 			case 30:
 				portlist_parse(argv[1], &portlist);
 				m_ether_aton(argv[5], &mac);
-				cne_printf("   Show Portlist: %08x vlan %d MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+				fgen_printf("   Show Portlist: %08x vlan %d MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
 						   portlist,
 						   atoi(argv[3]),
 						   mac.ether_addr_octet[0],
@@ -471,10 +471,10 @@ Example:
 			case 40:
 				portlist_parse(argv[1], &portlist);
 				m_ether_aton("1234:4567:8901", &mac);
-				cne_printf("   Show Portlist: %08x %s: ",
+				fgen_printf("   Show Portlist: %08x %s: ",
 						   portlist, argv[2]);
 				if (argv[2][0] == 'm')
-					cne_printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
+					fgen_printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
 						   mac.ether_addr_octet[0],
 						   mac.ether_addr_octet[1],
 						   mac.ether_addr_octet[2],
@@ -482,7 +482,7 @@ Example:
 						   mac.ether_addr_octet[4],
 						   mac.ether_addr_octet[5]);
 				else
-					cne_printf("%d\n", 101);
+					fgen_printf("%d\n", 101);
 				break;
 			default:
 				cli_help_show_group("Show");

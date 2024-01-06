@@ -75,8 +75,8 @@ readline.set_completer(readline_complete)
 readline.set_completer_delims(readline.get_completer_delims().replace('/', ''))
 
 # Path to sockets for processes run as a root user
-for f in glob.glob('/var/run/cndp/app_socket*'):
+for f in glob.glob('/var/run/fgen/app_socket*'):
     handle_socket(f)
 # Path to sockets for processes run as a regular user
-for f in glob.glob('/run/user/%d/cndp/app_socket*' % os.getuid()):
+for f in glob.glob('/run/user/%d/fgen/app_socket*' % os.getuid()):
     handle_socket(f)

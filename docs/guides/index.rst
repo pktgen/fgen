@@ -1,9 +1,9 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
     Copyright (c) 2019-2023 Intel Corporation.
 
-.. index:: CNDP Documentation
+.. index:: FGEN Documentation
 
-CNDP documentation
+FGEN documentation
 ==================
 
 .. toctree::
@@ -14,4 +14,4 @@ CNDP documentation
    prog_guide/index
    pmds/index
    sample_app_ug/index
-   testcne_app_ug/index
+   testfgen_app_ug/index

@@ -16,7 +16,7 @@ RX traffic for the added file descriptors.
 
 *   Detects idleness when the application is polling and calls epoll_wait() to force the thread into idle mode.
 
-The current design in CNDP is 100% polling of the receive ring in AF_XDP
+The current design in FGEN is 100% polling of the receive ring in AF_XDP
 or PMD which means burning core power. The patch adds two parameters to
 the jsonc file to control polling idle_timeout and intr_timeout
 in thread section.
@@ -54,7 +54,7 @@ customer money.
 Anatomy of Idlemgr
 ------------------
 
-The cndp/examples/cndpfwd application has two new items in the thread section of the json-c file. The two new items are idle_timeout and intr_timeout.
+The fgen/examples/fgenfwd application has two new items in the thread section of the json-c file. The two new items are idle_timeout and intr_timeout.
 The idle_timeout is used to detect in milliseconds when the receive path of a lport is idle. The intr_timeout in milliseconds is used in epoll() to timeout a waiting thread.
 
 Example from the fwd.jsonc thread section.
@@ -97,7 +97,7 @@ How to use the idlemgr
 ----------------------
 
 How to use idlemgr for any type of file descriptor, but normally we use it for AF_XDP sockets.
-The code is taken from the cndpfwd example and you can look at that file for more details.
+The code is taken from the fgenfwd example and you can look at that file for more details.
 
 A thread needs to call idlemgr_create()
 
@@ -106,7 +106,7 @@ A thread needs to call idlemgr_create()
    idlemgr_t *imgr = NULL;
    imgr = idlemgr_create(thd->name, thd->lport_cnt, thd->idle_timeout, thd->intr_timeout);
    if (!imgr)
-      CNE_ERR_GOTO(leave, "failed to create idle managed\n");
+      FGEN_ERR_GOTO(leave, "failed to create idle managed\n");
 
 The arguments is a name can be any unique string, the number of file descriptors to
 be used, the idle_timeout in ms, intr_timeout in ms. This create a epoll() group and
@@ -117,7 +117,7 @@ Calling idlemgr_add(imgr, fd, 0) to add file descriptors to the epoll() group fo
 .. code-block:: c
 
    if (xskdev_get_fd(pd->xsk, &fd, NULL) < 0)
-      CNE_ERR_GOTO(leave, "failed to get file descriptors for %s\n", lport->name);
+      FGEN_ERR_GOTO(leave, "failed to get file descriptors for %s\n", lport->name);
 
 The xskdev_get_fd() needs to be passed the xskdev_info_t pointer returned from the
 xskdev_create() function call. Then we add the fd to idlemgr.
@@ -136,7 +136,7 @@ inform idlemgr when has not returned any packets from the receive call.
 
    if (thd->idle_timeout) {
       if (idlemgr_process(imgr, n_pkts) < 0)
-         CNE_ERR_GOTO(leave, "idlemgr_process failed\n");
+         FGEN_ERR_GOTO(leave, "idlemgr_process failed\n");
    }
 
 When idlemgr detects all of the lports (or file descriptors in the group) have become

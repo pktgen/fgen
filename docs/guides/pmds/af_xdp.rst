@@ -13,7 +13,7 @@ For the full details behind AF_XDP socket, you can refer to
 <https://www.kernel.org/doc/Documentation/networking/af_xdp.rst>`_.
 
 This Linux-specific PMD driver creates the AF_XDP socket and binds it to a
-specific netdev queue, it allows a CNDP application to send and receive raw
+specific netdev queue, it allows a FGEN application to send and receive raw
 packets through the socket which would bypass the kernel network stack.
 Current implementation only supports single queue.
 
@@ -24,7 +24,7 @@ impact for the one core case, but also does not degrade 2 core performance and
 actually improves it for Tx heavy workloads.
 
 .. note::
-  For AF_XDP CNDP interacts with a logical port (lport) which is a netdev
+  For AF_XDP FGEN interacts with a logical port (lport) which is a netdev
   queue pair rather than interacting with the full netdev.
 
 The image below shows the logical view of lports
@@ -54,7 +54,7 @@ Limitations
   The MTU of the AF_XDP PMD is limited due to the XDP requirement of one packet
   per page. In the PMD we report the maximum MTU for zero copy to be equal
   to the page size less the frame overhead introduced by AF_XDP (XDP HR = 256)
-  and CNDP (frame headroom = 320). With a 4K page size this works out at 3520.
+  and FGEN (frame headroom = 320). With a 4K page size this works out at 3520.
   However in practice this value may be even smaller, due to differences between
   the supported RX buffer sizes of the underlying kernel netdev driver.
 
@@ -79,7 +79,7 @@ thread processing the queue. In other words, the userspace processing and the ke
 run on the same core, without Rx interrupts.
 
 To configure busy polling, first the napi_defer_hard_irqs and gro_flush_timeout knobs must be
-programmed. This is *not* done automatically by CNDP.
+programmed. This is *not* done automatically by FGEN.
 
 .. code-block:: console
 
@@ -96,5 +96,5 @@ The busy polling settings can be configured in the json file:
    busy_budget   - 0xFFFF disabled, 0 use default, >0 budget value
 
 Configuring busy polling is a privileged operation. For more information on how to configure this
-setting in an unprivileged container, see :ref:`Integration of the K8s device plugin with CNDP
+setting in an unprivileged container, see :ref:`Integration of the K8s device plugin with FGEN
 <integration-k8s-dp>`.

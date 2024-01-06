@@ -6,7 +6,7 @@
 Mempool Library
 ===============
 
-A memory pool is an allocator of a fixed-sized objects. In the CNDP, it is identified by name and uses a mempool handler to store free objects.
+A memory pool is an allocator of a fixed-sized objects. In the FGEN, it is identified by name and uses a mempool handler to store free objects.
 The default mempool handler is ring based. It provides some other optional services such as a per-core object cache and
 an alignment helper to ensure that objects are padded to spread them equally on all DRAM or DDR3 channels.
 

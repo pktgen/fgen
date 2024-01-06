@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2018 Luca Boccassi <bluca@debian.org>
+# Copyright (c) 2024 Intel Corp
 
 doxygen = find_program('doxygen', required: get_option('enable_docs'))
 
@@ -15,7 +15,7 @@ generate_doxygen = find_program('generate_doxygen.sh')
 generate_examples = find_program('generate_examples.sh')
 generate_css = find_program('doxy-html-custom.sh')
 
-htmldir = join_paths(get_option('datadir'), 'doc', 'cndp')
+htmldir = join_paths(get_option('datadir'), 'doc', 'fgen')
 
 # due to the following bug: https://github.com/mesonbuild/meson/issues/4107
 # if install is set to true it will override build_by_default and it will
@@ -24,7 +24,7 @@ htmldir = join_paths(get_option('datadir'), 'doc', 'cndp')
 # So use a configure option for now.
 example = custom_target('examples.dox',
 	output: 'examples.dox',
-	command: [generate_examples, join_paths(cndp_source_root, 'examples'), '@OUTPUT@'],
+	command: [generate_examples, join_paths(fgen_source_root, 'examples'), '@OUTPUT@'],
 	depfile: 'examples.dox.d',
 	install: get_option('enable_docs'),
 	install_dir: htmldir,
@@ -32,11 +32,11 @@ example = custom_target('examples.dox',
 
 cdata = configuration_data()
 cdata.set('VERSION', meson.project_version())
-cdata.set('API_EXAMPLES', join_paths(cndp_build_root, 'doc', 'api', 'examples.dox'))
-cdata.set('OUTPUT', join_paths(cndp_build_root, 'doc', 'api'))
+cdata.set('API_EXAMPLES', join_paths(fgen_build_root, 'doc', 'api', 'examples.dox'))
+cdata.set('OUTPUT', join_paths(fgen_build_root, 'doc', 'api'))
 cdata.set('HTML_OUTPUT', 'api')
-cdata.set('TOPDIR', cndp_source_root)
-cdata.set('STRIP_FROM_PATH', cndp_source_root)
+cdata.set('TOPDIR', fgen_source_root)
+cdata.set('STRIP_FROM_PATH', fgen_source_root)
 
 doxy_conf = configure_file(input: 'doxy-api.conf.in',
 	output: 'doxy-api.conf',

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Wrapper for running a CNDP application by setting the LD_LABRARY_PATH to the local install
-# directory in the top level directory. i.e. $CNDP_DIR/usr/local/lib/x86_64-linux-gnu
+# Wrapper for running a FGEN application by setting the LD_LABRARY_PATH to the local install
+# directory in the top level directory. i.e. $FGEN_DIR/usr/local/lib/x86_64-linux-gnu
 dir=`pwd`
 ld_paths=./usr/local/lib/x86_64-linux-gnu:${dir}/usr/local/lib/x86_64-linux-gnu:${dir}/usr/local/lib64
 

@@ -1,12 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2021 Intel Corporation
- */
-/*
- * Some logic and code ideas were lifted from DPDK's TGEN library, but
- * modified and simplified to fit into CNDP.
- *
- * The decoding of raw packet into a string feature was not in the
- * TGEN design and added for CNDP.
+ * Copyright(c) 2023-2024 Intel Corporation
  */
 
 #ifndef __FGEN_H
@@ -20,8 +13,7 @@ extern "C" {
 
 typedef void fgen_decode_t;
 
-#include <cne_mmap.h>
-#include <pktmbuf.h>
+#include <fgen_mmap.h>
 
 enum {
     FGEN_MAX_STRING_LENGTH = 4096, /**< Maximum string length for text string */
@@ -199,7 +191,7 @@ enum {
  * @return
  *   NULL on error or Pointer to fgen_t structure on success.
  */
-CNDP_API fgen_t *fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags);
+FGEN_API fgen_t *fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags);
 
 /**
  * Destroy the frame generator object.
@@ -207,7 +199,7 @@ CNDP_API fgen_t *fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags);
  * @param fg
  *   The fgen_t pointer returned from fgen_create()
  */
-CNDP_API void fgen_destroy(fgen_t *fg);
+FGEN_API void fgen_destroy(fgen_t *fg);
 
 /**
  * Load a fgen text file and grab the fgen frame strings/names.
@@ -219,7 +211,7 @@ CNDP_API void fgen_destroy(fgen_t *fg);
  * @return
  *   -1 on error or number of frames loaded
  */
-CNDP_API int fgen_load_file(fgen_t *fg, const char *filename);
+FGEN_API int fgen_load_file(fgen_t *fg, const char *filename);
 
 /**
  * Load a fgen string array and create a fgen_file_t structure pointer.
@@ -234,7 +226,7 @@ CNDP_API int fgen_load_file(fgen_t *fg, const char *filename);
  * @return
  *   -1 on error or number of frames loaded
  */
-CNDP_API int fgen_load_strings(fgen_t *fg, const char **frames, int len);
+FGEN_API int fgen_load_strings(fgen_t *fg, const char **frames, int len);
 
 /**
  * Parse the fgen string to generate the frame and add to the list.
@@ -250,7 +242,7 @@ CNDP_API int fgen_load_strings(fgen_t *fg, const char **frames, int len);
  * @return
  *   0 on success or -1 on error.
  */
-CNDP_API int fgen_add_frame_at(fgen_t *fg, int idx, const char *name, const char *text);
+FGEN_API int fgen_add_frame_at(fgen_t *fg, int idx, const char *name, const char *text);
 
 /**
  * Parse the fgen string to generate the frame and add to the list.
@@ -264,8 +256,9 @@ CNDP_API int fgen_add_frame_at(fgen_t *fg, int idx, const char *name, const char
  * @return
  *   0 on success or -1 on error.
  */
-CNDP_API int fgen_add_frame(fgen_t *fg, const char *name, const char *text);
+FGEN_API int fgen_add_frame(fgen_t *fg, const char *name, const char *text);
 
+#if 0
 /**
  * Copy the frame generator object into the list of mbufs and adjust the mbufs accordingly.
  *
@@ -282,7 +275,7 @@ CNDP_API int fgen_add_frame(fgen_t *fg, const char *name, const char *text);
  * @return
  *   0 on success or -1 on error.
  */
-CNDP_API int fgen_alloc(fgen_t *fg, int low, int high, pktmbuf_t **mbufs, uint32_t nb_pkts);
+FGEN_API int fgen_alloc(fgen_t *fg, int low, int high, fgenbuf_t **fbufs, uint32_t nb_pkts);
 
 /**
  * Free the mbuf array, plus update stats like latency, ...
@@ -296,7 +289,8 @@ CNDP_API int fgen_alloc(fgen_t *fg, int low, int high, pktmbuf_t **mbufs, uint32
  * @return
  *   0 on success and free the mbuf array or -1 on error.
  */
-CNDP_API int fgen_free(fgen_t *fg, pktmbuf_t **mbufs, uint32_t nb_pkts);
+FGEN_API int fgen_free(fgen_t *fg, fgenbuf_t **fbufs, uint32_t nb_pkts);
+#endif
 
 /**
  * Print out a fgen frame text string
@@ -306,7 +300,7 @@ CNDP_API int fgen_free(fgen_t *fg, pktmbuf_t **mbufs, uint32_t nb_pkts);
  * @param fpkt
  *   The frame_t pointer to print.
  */
-CNDP_API void fgen_print_frame(const char *msg, frame_t *f);
+FGEN_API void fgen_print_frame(const char *msg, frame_t *f);
 
 /**
  * Create a decode raw packet into a frame string setup routine.
@@ -314,7 +308,7 @@ CNDP_API void fgen_print_frame(const char *msg, frame_t *f);
  * @return
  *   NULL on error or pointer to fgen_decode_t structure.
  */
-CNDP_API fgen_decode_t *fgen_decode_create(void);
+FGEN_API fgen_decode_t *fgen_decode_create(void);
 
 /**
  * Decode the raw packet data into a string
@@ -330,7 +324,7 @@ CNDP_API fgen_decode_t *fgen_decode_create(void);
  * @return
  *   -1 on error or length of decoded string.
  */
-CNDP_API int fgen_decode(fgen_decode_t *dc, void *data, uint16_t len, opt_type_t opt);
+FGEN_API int fgen_decode(fgen_decode_t *dc, void *data, uint16_t len, opt_type_t opt);
 
 /**
  * Free the unparse information.
@@ -338,7 +332,7 @@ CNDP_API int fgen_decode(fgen_decode_t *dc, void *data, uint16_t len, opt_type_t
  * @param dc
  *   The fgen_decode_t pointer to free.
  */
-CNDP_API void fgen_decode_destroy(fgen_decode_t *dc);
+FGEN_API void fgen_decode_destroy(fgen_decode_t *dc);
 
 /**
  * Return the buffer of the decoded packet.
@@ -348,7 +342,7 @@ CNDP_API void fgen_decode_destroy(fgen_decode_t *dc);
  * @return
  *   The buffer of the decoded packet or NULL on error
  */
-CNDP_API const char *fgen_decode_text(fgen_decode_t *dc);
+FGEN_API const char *fgen_decode_text(fgen_decode_t *dc);
 
 /**
  * Decode a raw hex dump like string into a binary format.
@@ -362,7 +356,7 @@ CNDP_API const char *fgen_decode_text(fgen_decode_t *dc);
  * @return
  *   -1 on error or number of decoded bytes in the buffer.
  */
-CNDP_API int fgen_decode_string(const char *text, uint8_t *buffer, int len);
+FGEN_API int fgen_decode_string(const char *text, uint8_t *buffer, int len);
 
 /**
  * Print out the FGEN text string in layers.
@@ -372,7 +366,7 @@ CNDP_API int fgen_decode_string(const char *text, uint8_t *buffer, int len);
  * @param text
  *   The FGEN string to print.
  */
-CNDP_API void fgen_print_string(const char *msg, const char *text);
+FGEN_API void fgen_print_string(const char *msg, const char *text);
 
 /**
  * Return the frame pointer for the given index value

@@ -27,9 +27,9 @@ Features of the Graph library are:
 - Multi-process support.
 - Low overhead graph walk and node enqueue.
 - Low overhead statistics collection infrastructure.
-- Support to export the graph as a Graphviz dot file. See ``cne_graph_export()``.
+- Support to export the graph as a Graphviz dot file. See ``fgen_graph_export()``.
 - Allow having another graph walk implementation in the future by segregating
-  the fast path(``cne_graph_worker.h``) and slow path code.
+  the fast path(``fgen_graph_worker.h``) and slow path code.
 
 Advantages of Graph architecture
 --------------------------------
@@ -48,7 +48,7 @@ Performance tuning parameters
 -----------------------------
 
 - Test with various burst size values (256, 128, 64, 32) using
-  CNE_GRAPH_BURST_SIZE config option.
+  FGEN_GRAPH_BURST_SIZE config option.
   The testing shows, on x86 and arm64 servers, The sweet spot is 256 burst
   size. While on arm64 embedded SoCs, it is either 64 or 128.
 
@@ -74,9 +74,9 @@ process():
 ^^^^^^^^^^
 
 The callback function will be invoked by worker thread using
-``cne_graph_walk()`` function when there is data to be processed by the node.
+``fgen_graph_walk()`` function when there is data to be processed by the node.
 A graph node process the function using ``process()`` and enqueue to next
-downstream node using ``cne_node_enqueue*()`` function.
+downstream node using ``fgen_node_enqueue*()`` function.
 
 Context memory:
 ^^^^^^^^^^^^^^^
@@ -87,31 +87,31 @@ information. This memory will be used by process(), init(), fini() callbacks.
 init():
 ^^^^^^^
 
-The callback function will be invoked by ``cne_graph_create()`` on when
+The callback function will be invoked by ``fgen_graph_create()`` on when
 a node gets attached to a graph.
 
 fini():
 ^^^^^^^
 
-The callback function will be invoked by ``cne_graph_destroy()`` on when a
+The callback function will be invoked by ``fgen_graph_destroy()`` on when a
 node gets detached to a graph.
 
 Node name:
 ^^^^^^^^^^
 
 It is the name of the node. When a node registers to graph library, the library
-gives the ID as ``cne_node_t`` type. Both ID or Name shall be used lookup the
-node. ``cne_node_from_name()``, ``cne_node_id_to_name()`` are the node
+gives the ID as ``fgen_node_t`` type. Both ID or Name shall be used lookup the
+node. ``fgen_node_from_name()``, ``fgen_node_id_to_name()`` are the node
 lookup functions.
 
 nb_edges:
 ^^^^^^^^^
 
 The number of downstream nodes connected to this node. The ``next_nodes[]``
-stores the downstream nodes objects. ``cne_node_edge_update()`` and
-``cne_node_edge_shrink()`` functions shall be used to update the ``next_node[]``
+stores the downstream nodes objects. ``fgen_node_edge_update()`` and
+``fgen_node_edge_shrink()`` functions shall be used to update the ``next_node[]``
 objects. Consumers of the node APIs are free to update the ``next_node[]``
-objects till ``cne_graph_create()`` invoked.
+objects till ``fgen_graph_create()`` invoked.
 
 next_node[]:
 ^^^^^^^^^^^^
@@ -122,17 +122,17 @@ node should not be current node itself or a source node.
 Source node:
 ^^^^^^^^^^^^
 
-Source nodes are static nodes created using ``CNE_NODE_REGISTER`` by passing
-``flags`` as ``CNE_NODE_SOURCE_F``.
+Source nodes are static nodes created using ``FGEN_NODE_REGISTER`` by passing
+``flags`` as ``FGEN_NODE_SOURCE_F``.
 While performing the graph walk, the ``process()`` function of all the source
 nodes will be called first. So that these nodes can be used as input nodes for a graph.
 
 Node creation and registration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Node implementer creates the node by implementing ops and attributes of
-  ``struct cne_node_register``.
+  ``struct fgen_node_register``.
 
-* The library registers the node by invoking CNE_NODE_REGISTER on library load
+* The library registers the node by invoking FGEN_NODE_REGISTER on library load
   using the constructor scheme. The constructor scheme used here to support multi-process.
 
 Link the Nodes to create the graph topology
@@ -153,19 +153,19 @@ There are multiple different types of strategies to link the nodes.
 
 Method (a):
 ^^^^^^^^^^^
-Provide the ``next_nodes[]`` at the node registration time. See  ``struct cne_node_register::nb_edges``.
+Provide the ``next_nodes[]`` at the node registration time. See  ``struct fgen_node_register::nb_edges``.
 This is a use case to address the static node scheme where one knows upfront the
 ``next_nodes[]`` of the node.
 
 Method (b):
 ^^^^^^^^^^^
-Use ``cne_node_edge_get()``, ``cne_node_edge_update()``, ``cne_node_edge_shrink()``
+Use ``fgen_node_edge_get()``, ``fgen_node_edge_update()``, ``fgen_node_edge_shrink()``
 to update the ``next_nodes[]`` links for the node runtime but before graph create.
 
 Method (c):
 ^^^^^^^^^^^
-Use ``cne_node_clone()`` to clone a already existing node, created using CNE_NODE_REGISTER.
-When ``cne_node_clone()`` invoked, The library, would clone all the attributes
+Use ``fgen_node_clone()`` to clone a already existing node, created using FGEN_NODE_REGISTER.
+When ``fgen_node_clone()`` invoked, The library, would clone all the attributes
 of the node and creates a new one. The name for cloned node shall be
 ``"parent_node_name-user_provided_name"``.
 
@@ -183,7 +183,7 @@ form a graph object. The ``fini()`` API used underneath for the pattern
 matching to include the required nodes. After the graph create any changes to
 nodes or graph is not allowed.
 
-The ``cne_graph_create()`` API shall be used to create the graph.
+The ``fgen_graph_create()`` API shall be used to create the graph.
 
 Example of a graph object creation:
 
@@ -198,7 +198,7 @@ and pktdev tx node of all ports.
 Multicore graph processing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 In the current graph library implementation, specifically,
-``cne_graph_walk()`` and ``cne_node_enqueue*`` fast path API functions
+``fgen_graph_walk()`` and ``fgen_node_enqueue*`` fast path API functions
 are designed to work on single-core to have better performance.
 The fast path API works on graph object, So the multi-core graph
 processing strategy would be to create graph object PER WORKER.
@@ -206,29 +206,29 @@ processing strategy would be to create graph object PER WORKER.
 In fast path
 ~~~~~~~~~~~~
 Typical fast-path code looks like below, where the application
-gets the fast-path graph object using ``cne_graph_lookup()``
-on the worker thread and run the ``cne_graph_walk()`` in a tight loop.
+gets the fast-path graph object using ``fgen_graph_lookup()``
+on the worker thread and run the ``fgen_graph_walk()`` in a tight loop.
 
 .. code-block:: c
 
-    struct cne_graph *graph = cne_graph_lookup("worker0");
+    struct fgen_graph *graph = fgen_graph_lookup("worker0");
 
     while (!done) {
-        cne_graph_walk(graph);
+        fgen_graph_walk(graph);
     }
 
 Context update when graph walk in action
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The fast-path object for the node is ``struct cne_node``.
+The fast-path object for the node is ``struct fgen_node``.
 
 It may be possible that in slow-path or after the graph walk-in action,
 the user needs to update the context of the node hence access to
-``struct cne_node *`` memory.
+``struct fgen_node *`` memory.
 
-``cne_graph_foreach_node()``, ``cne_graph_node_get()``,
-``cne_graph_node_get_by_name()`` APIs can be used to to get the
-``struct cne_node*``. ``cne_graph_foreach_node()`` iterator function works on
-``struct cne_graph *`` fast-path graph object while others works on graph ID or name.
+``fgen_graph_foreach_node()``, ``fgen_graph_node_get()``,
+``fgen_graph_node_get_by_name()`` APIs can be used to to get the
+``struct fgen_node*``. ``fgen_graph_foreach_node()`` iterator function works on
+``struct fgen_graph *`` fast-path graph object while others works on graph ID or name.
 
 Get the node statistics using graph cluster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -237,11 +237,11 @@ multiple graph objects. Especially the situation where each graph object bound
 to a worker thread.
 
 Introduced a graph cluster object for statistics.
-``cne_graph_cluster_stats_create()`` API shall be used for creating a
-graph cluster with multiple graph objects and ``cne_graph_cluster_stats_get()``
+``fgen_graph_cluster_stats_create()`` API shall be used for creating a
+graph cluster with multiple graph objects and ``fgen_graph_cluster_stats_get()``
 to get the aggregate node statistics.
 
-An example statistics output from ``cne_graph_cluster_stats_get()``
+An example statistics output from ``fgen_graph_cluster_stats_get()``
 
 .. code-block:: diff
 
@@ -269,8 +269,8 @@ Static nodes
 The first kind of nodes are those that have a fixed ``next_nodes[]`` for the
 complete burst (like pktdev_rx, pktdev_tx) and it is simple to write.
 ``process()`` function can move the obj burst to the next node either using
-``cne_node_next_stream_move()`` or using ``cne_node_next_stream_get()`` and
-``cne_node_next_stream_put()``.
+``fgen_node_next_stream_move()`` or using ``fgen_node_next_stream_get()`` and
+``fgen_node_next_stream_put()``.
 
 Intermediate nodes
 ~~~~~~~~~~~~~~~~~~
@@ -281,13 +281,13 @@ The second kind of such node is ``intermediate nodes`` that decide what is the
 
 * Secondly, each packet needs to be queued to its next node.
 
-This can be done using ``cne_node_enqueue_[x1|x2|x4]()`` APIs if
-they are to single next or ``cne_node_enqueue_next()`` that takes array of nexts.
+This can be done using ``fgen_node_enqueue_[x1|x2|x4]()`` APIs if
+they are to single next or ``fgen_node_enqueue_next()`` that takes array of nexts.
 
 In scenario where multiple intermediate nodes are present but most of the time
 each node using the same next node for all its packets, the cost of moving every
 pointer from current node's stream to next node's stream could be avoided.
-This is called home run and ``cne_node_next_stream_move()`` could be used to
+This is called home run and ``fgen_node_next_stream_move()`` could be used to
 just move stream from the current node to the next node with least number of cycles.
 Since this can be avoided only in the case where all the packets are destined
 to the same next node, node implementation should be also having worst-case
@@ -299,7 +299,7 @@ Example of intermediate node implementation with home run:
 This could be the next_node application used in the previous function call of this node.
 
 2. Get the next_node stream array with required space using
-``cne_node_next_stream_get(next_node, space)``.
+``fgen_node_next_stream_get(next_node, space)``.
 
 3. while n_left_from > 0 (i.e packets left to be sent) prefetch next pkt_set
 and process current pkt_set to find their next node
@@ -308,7 +308,7 @@ and process current pkt_set to find their next node
 just count them as successfully speculated(``last_spec``) till now and
 continue the loop without actually moving them to the next node. else if there is
 a mismatch, copy all the pkt_set pointers that were ``last_spec`` and move the
-current pkt_set to their respective next's nodes using ``cne_enqueue_next_x1()``.
+current pkt_set to their respective next's nodes using ``fgen_enqueue_next_x1()``.
 Also, one of the next_node can be updated as speculated next_node if it is more
 probable. Finally, reset ``last_spec`` to zero.
 
@@ -316,7 +316,7 @@ probable. Finally, reset ``last_spec`` to zero.
 
 6. if last_spec == nb_objs, All the objects passed were successfully speculated
 to single next node. So, the current stream can be moved to next node using
-``cne_node_next_stream_move(node, next_node)``.
+``fgen_node_next_stream_move(node, next_node)``.
 This is the ``home run`` where memcpy of buffer pointers to next node is avoided.
 
 7. Update the ``node->ctx`` with more probable next node.
@@ -329,50 +329,50 @@ Graph object memory layout
 
    Graph object memory layout
 
-The :numref:`figure_graph-mem-layout` diagram shows ``cne_graph`` object memory
+The :numref:`figure_graph-mem-layout` diagram shows ``fgen_graph`` object memory
 layout. Understanding the memory layout helps to debug the graph library and
 improve the performance if needed.
 
 Graph object consists of a header, circular buffer to store the pending
 stream when walking over the graph, and variable-length memory to store
-the ``cne_node`` objects.
+the ``fgen_node`` objects.
 
 The graph_nodes_mem_create() creates and populate this memory. The functions
-such as ``cne_graph_walk()`` and ``cne_node_enqueue_*`` use this memory
+such as ``fgen_graph_walk()`` and ``fgen_node_enqueue_*`` use this memory
 to enable fastpath services.
 
 Inbuilt Nodes
 -------------
 
-CNDP provides a set of nodes for data processing. The following section
+FGEN provides a set of nodes for data processing. The following section
 details the documentation for the same.
 
 pktdev_rx
 ~~~~~~~~~
-This node does ``cne_eth_rx_burst()`` into stream buffer passed to it
-(src node stream) and does ``cne_node_next_stream_move()`` only when
-there are packets received. Each ``cne_node`` works only on one Rx port and
+This node does ``fgen_eth_rx_burst()`` into stream buffer passed to it
+(src node stream) and does ``fgen_node_next_stream_move()`` only when
+there are packets received. Each ``fgen_node`` works only on one Rx port and
 queue that it gets from node->ctx. For each (port X, rx_queue Y),
-a cne_node is cloned from  pktdev_rx_base_node as ``pktdev_rx-X-Y`` in
-``cne_node_eth_config()`` along with updating ``node->ctx``.
-Each graph needs to be associated  with a unique cne_node for a (port, rx_queue).
+a fgen_node is cloned from  pktdev_rx_base_node as ``pktdev_rx-X-Y`` in
+``fgen_node_eth_config()`` along with updating ``node->ctx``.
+Each graph needs to be associated  with a unique fgen_node for a (port, rx_queue).
 
 pktdev_tx
 ~~~~~~~~~
-This node does ``cne_eth_tx_burst()`` for a burst of objs received by it.
+This node does ``fgen_eth_tx_burst()`` for a burst of objs received by it.
 It sends the burst to a fixed Tx Port and Queue information from
-node->ctx. For each (port X), this ``cne_node`` is cloned from
-pktdev_tx_node_base as "pktdev_tx-X" in ``cne_node_eth_config()``
+node->ctx. For each (port X), this ``fgen_node`` is cloned from
+pktdev_tx_node_base as "pktdev_tx-X" in ``fgen_node_eth_config()``
 along with updating node->context.
 
 Since each graph doesn't need more than one Txq, per port, a Txq is assigned
-based on graph id to each cne_node instance. Each graph needs to be associated
-with a cne_node for each (port).
+based on graph id to each fgen_node instance. Each graph needs to be associated
+with a fgen_node for each (port).
 
 pkt_drop
 ~~~~~~~~
 This node frees all the objects passed to it considering them as
-``cne_mbufs`` that need to be freed.
+``fgen_mbufs`` that need to be freed.
 
 ip4_lookup
 ~~~~~~~~~~
@@ -383,8 +383,8 @@ On successful LPM lookup, the result contains the ``next_node`` id and
 ``next-hop`` id with which the packet needs to be further processed.
 
 On LPM lookup failure, objects are redirected to pkt_drop node.
-``cne_node_ip4_route_add()`` is control path API to add ipv4 routes.
-To achieve home run, node use ``cne_node_stream_move()`` as mentioned in above
+``fgen_node_ip4_route_add()`` is control path API to add ipv4 routes.
+To achieve home run, node use ``fgen_node_stream_move()`` as mentioned in above
 sections.
 
 ip4_rewrite
@@ -393,7 +393,7 @@ This node gets packets from ``ip4_lookup`` node with next-hop id for each
 packet is embedded in ``node_mbuf_priv1(mbuf)->nh``. This id is used
 to determine the L2 header to be written to the packet before sending
 the packet out to a particular pktdev_tx node.
-``cne_node_ip4_rewrite_add()`` is control path API to add next-hop info.
+``fgen_node_ip4_rewrite_add()`` is control path API to add next-hop info.
 
 null
 ~~~~
