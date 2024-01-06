@@ -4,6 +4,7 @@
 
 #include <errno.h>        // for ENOTSUP
 
+#include <fgen_stdio.h>   // for fgen_printf
 #include "test.h"
 
 int last_test_result;

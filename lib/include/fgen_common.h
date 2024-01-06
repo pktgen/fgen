@@ -40,13 +40,6 @@ extern "C" {
 #define FGEN_NAME_LEN         24
 #define FGEN_CACHE_LINE_SIZE  64
 
-#define fgen_printf printf
-#define fgen_fprintf fprintf
-#define fgen_vprintf vprintf
-#define fgen_strlcpy strlcpy
-#define fgen_strlcat strlcat
-#define fgen_strchr strchr
-
 /**
  * Helper routine to set a default value if x == y then x = z.
  *

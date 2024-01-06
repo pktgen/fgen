@@ -11,7 +11,7 @@ headers = files(
     'hexdump.h',
     )
 
-deps += [include, log]
+deps += [include, log, osal]
 
 libutils = library(libname, sources, install: true, dependencies: deps)
 utils = declare_dependency(link_with: libutils, include_directories: include_directories('.'))

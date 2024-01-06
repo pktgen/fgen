@@ -6,6 +6,7 @@
 #include <string.h>        // for strcpy
 
 #include <fgen_common.h>
+#include <fgen_stdio.h>
 #include "hexdump.h"
 
 #define LINE_LEN 128

@@ -13,6 +13,7 @@
 #include <pcap.h>
 #include <fgen_common.h>        // for FGEN_USED, fgen_countof
 #include <fgen_log.h>
+#include <fgen_stdio.h>
 #include <bits/getopt_core.h>        // for optind
 #include <fgen.h>
 #include <fgen_strings.h>

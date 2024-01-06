@@ -10,6 +10,7 @@
 
 #include <fgen_common.h>
 #include <fgen_log.h>
+#include <fgen_stdio.h>
 #include "tst_info.h"
 
 struct tst_stat {

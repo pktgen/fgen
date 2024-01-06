@@ -8,6 +8,7 @@
 
 #include <fgen_common.h>
 #include <fgen_log.h>
+#include <fgen_stdio.h>
 #include <fgen_strings.h>
 
 #include "fgen.h"

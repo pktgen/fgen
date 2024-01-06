@@ -3,7 +3,7 @@
 
 sources = files('fgen_test.c')
 
-deps += [include, log, mmap, tst_common, fgen]
+deps += [include, log, osal, mmap, tst_common, fgen]
 cflags = []
 
 executable('fgen_test',
