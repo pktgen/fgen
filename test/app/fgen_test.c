@@ -12,7 +12,6 @@
 #include <time.h>
 #include <pcap.h>
 #include <fgen_common.h>        // for FGEN_USED, fgen_countof
-#include <cne.h>
 #include <fgen_log.h>
 #include <bits/getopt_core.h>        // for optind
 #include <fgen.h>
@@ -166,7 +165,7 @@ leave:
 }
 
 int
-fgen_main(int argc, char **argv)
+main(int argc, char **argv)
 {
     tst_info_t *tst;
     bool create_pcap = false;

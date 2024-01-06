@@ -42,8 +42,7 @@ extern "C" {
 
 #define fgen_printf printf
 #define fgen_fprintf fprintf
-#define fgen_snprintf snprintf
-#define fgen_vsnprintf vsnprintf
+#define fgen_vprintf vprintf
 #define fgen_strlcpy strlcpy
 #define fgen_strlcat strlcat
 #define fgen_strchr strchr

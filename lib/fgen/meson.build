@@ -5,7 +5,7 @@ sources = files('fgen.c', 'encode.c', 'decode.c')
 headers = files('fgen.h')
 
 deps = [include, log, mmap]
-libfgen = library('fgen', sources, install: true, dependencies: deps)
+libfgen = library(libname, sources, install: true, dependencies: deps)
 fgen = declare_dependency(link_with: libfgen, include_directories: include_directories('.'))
 
 fgen_libs += fgen

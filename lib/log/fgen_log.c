@@ -8,6 +8,7 @@
 #include <stdlib.h>          // for abort, exit, free
 #include <fgen_strings.h>
 #include <fgen_log.h>
+#include <fgen_stdio.h>
 
 #define MAX_LOG_BUF_SIZE 1024 /** The max size of internal buffers */
 

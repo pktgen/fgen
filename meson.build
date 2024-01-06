@@ -228,10 +228,7 @@ build_cfg = declare_dependency(include_directories: include_directories('.'))
 
 ##################################################################
 
-subdir('include')           # Include files
-subdir('log')               # Build log
-subdir('mmap')              # Build mmap
-subdir('src')               # Build Libs
+subdir('lib')
 subdir('docs')              # Build Docs
 subdir('test')              # Build Tests
 subdir('examples')          # Examples

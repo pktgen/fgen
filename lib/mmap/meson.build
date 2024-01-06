@@ -6,7 +6,7 @@ headers = files('fgen_mmap.h')
 
 deps = [include, log]
 
-libmmap = library('mmap', sources, install: true, dependencies: deps)
+libmmap = library(libname, sources, install: true, dependencies: deps)
 mmap = declare_dependency(link_with: libmmap, include_directories: include_directories('.'))
 
 fgen_libs += mmap

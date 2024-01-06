@@ -3,10 +3,12 @@
 
 sources = []
 headers = files(
+    'fgen_atomic.h',
     'fgen_buf.h',
     'fgen_byteorder.h',
     'fgen_common.h',
     'fgen_cycles.h',
+    'fgen_gettid.h',
     'fgen_strings.h',
     'fgen_version.h',
     )

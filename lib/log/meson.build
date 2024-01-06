@@ -4,9 +4,9 @@
 sources = files('fgen_log.c')
 headers = files('fgen_log.h')
 
-deps = [include]
+deps = [include, osal]
 
-liblog = library('log', sources, install: true, dependencies: deps)
+liblog = library(libname, sources, install: true, dependencies: deps)
 log = declare_dependency(link_with: liblog, include_directories: include_directories('.'))
 
 fgen_libs += log
