@@ -246,20 +246,6 @@ fgen_so_name = 'libfgen.so'
 mklib = find_program('tools/mklib.sh')
 build_dir = meson.current_build_dir()
 
-if use_static_libs
-    fgen_a = custom_target('libfgen_a_target',
-        output: 'libfgen.a',
-        command:[mklib, build_dir, '@OUTPUT@', libfgen_a],
-        install_dir: join_paths('lib', 'x86_64-linux-gnu'),
-        install: true)
-else
-    fgen_so = custom_target('libfgen_so_target',
-        output: 'libfgen.so',
-        command:[mklib, build_dir, '@OUTPUT@', libfgen_so],
-        install_dir: join_paths('lib', 'x86_64-linux-gnu'),
-        install: true)
-endif
-
 pkg = import('pkgconfig')
 
 message('>>> Create pkg-config file')
