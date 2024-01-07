@@ -13,7 +13,7 @@ project('fgen', 'C', 'cpp',
         'warning_level=3',
         'werror=true'
     ],
-    meson_version: '>= 0.53.2'
+    meson_version: '>= 1.2.0'
 )
 
 use_static_libs = get_option('default_library') == 'static'
