@@ -1,19 +1,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2023-2024 Intel Corporation
 
-dirs = ['osal', 'log', 'mmap', 'utils', 'fgen']
-
-headers = []
-subdir('include')
-install_headers(headers, subdir: meson.project_name().to_lower())
+dirs = ['include', 'osal', 'log', 'mmap', 'utils', 'core']
 
 foreach d:dirs
     sources = []
     headers = []
 
-    libname = d
-    if libname != 'fgen'
+    if d != 'include'
+        libname = 'fgen_' + d
         enabled_libs += libname
+    else
+        libname = d
     endif
     subdir(d)
 

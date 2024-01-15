@@ -4,7 +4,9 @@
 
 #include <stdint.h>        // for uint32_t, uint16_t, int32_t, uint8_t
 #include <stdbool.h>
-#include <netinet/in.h>    // for ntohs, htonl, htons
+#include <netinet/in.h>        // for ntohs, htonl, htons
+#include <net/ethernet.h>
+#include <sys/queue.h>
 
 #include <fgen_common.h>
 #include <fgen_log.h>
@@ -13,68 +15,78 @@
 
 #include "fgen.h"
 
-extern int _encode_frame(fgen_t *fg, frame_t *f);
+extern int _encode_frame(frame_t *f);
 
-static int
-_add_frame(fgen_t *fg, uint16_t idx, const char *name, const char *fstr)
+static frame_t *
+frame_alloc(fgen_t *fg, const char *name, const char *fstr)
 {
     frame_t *f;
-    size_t sz;
 
-    if (idx >= fg->max_frames)
-        FGEN_ERR_RET("Number of frames exceeds %u\n", fg->max_frames);
+    f = calloc(1, sizeof(*f));
+    if (!f)
+        return NULL;
 
-    f           = &fg->frames[idx];
-    f->data_len = 0;
-    f->tsc_off  = 0;
+    f->name = strdup(name);
+    if (!f->name) {
+        free(f);
+        return NULL;
+    }
 
-    sz = strnlen(fstr, FGEN_MAX_STRING_LENGTH);
-
-    if (sz <= 0 || sz >= FGEN_MAX_STRING_LENGTH)
-        FGEN_ERR_RET("String is 0 or too long %ld > %d\n", sz, FGEN_MAX_STRING_LENGTH);
-
-    f->name[0] = '\0';
-    if (name)
-        strlcpy(f->name, name, sizeof(f->name));
-
-    if (strlen(f->name) == 0)
-        snprintf(f->name, sizeof(f->name), "Frame-%u", f->fidx);
-
-    f->frame_text = strdup(fstr);
-    if (!f->frame_text)
-        FGEN_ERR_GOTO(leave, "Unable to allocate memory\n");
-
-    if (_encode_frame(fg, f) < 0)
-        FGEN_ERR_GOTO(leave, "Failed to parse frame\n");
-
+    f->fstr = strdup(fstr);
+    if (!f->fstr) {
+        free(f->name);
+        free(f);
+        return NULL;
+    }
+    f->fg = fg;        // save the fgen_t pointer
     fg->nb_frames++;
 
-    return 0;
-leave:
-    if (f) {
-        f->name[0] = '\0';
-        free(f->frame_text);
-        f->frame_text = NULL;
-    }
-    return -1;
+    TAILQ_INSERT_TAIL(&fg->head, f, next);
+
+    return f;
 }
 
-int
-fgen_add_frame_at(fgen_t *fg, int idx, const char *name, const char *fstr)
+static void
+frame_free(fgen_t *fg, frame_t *f)
 {
+    if (f) {
+        fg->nb_frames--;
+        TAILQ_REMOVE(&fg->head, f, next);
+        free(f->fstr);
+        free(f->name);
+        free(f);
+    }
+}
+
+static int
+_add_frame(fgen_t *fg, const char *name, const char *fstr)
+{
+    frame_t *f;
+
     if (!fg)
         FGEN_ERR_RET("fgen_t pointer is NULL\n");
 
-    if (!fstr)
-        FGEN_ERR_RET("fgen string is NULL\n");
+    if (!name || name[0] == '\0')
+        FGEN_ERR_RET("frame name is NULL\n");
 
-    if (_add_frame(fg, idx, name, fstr) < 0)
-        FGEN_ERR_RET("Failed to parse frame\n");
+    if (!fstr || fstr[0] == '\0')
+        FGEN_ERR_RET("frame string is NULL\n");
 
-    if (fg->flags & (FGEN_VERBOSE || FGEN_DUMP_DATA))
-        fgen_printf("\n");
+    f = fgen_find_frame(fg, name);
+    if (f)
+        FGEN_ERR_RET("frame %s already exists", name);
+
+    f = frame_alloc(fg, name, fstr);
+    if (f == NULL)
+        FGEN_ERR_RET("failed to allocate frame\n");
+
+    if (_encode_frame(f) < 0)
+        FGEN_ERR_GOTO(leave, "Failed to parse frame\n");
 
     return 0;
+leave:
+    frame_free(fg, f);
+    return -1;
 }
 
 int
@@ -83,67 +95,67 @@ fgen_add_frame(fgen_t *fg, const char *name, const char *fstr)
     if (!fg)
         FGEN_ERR_RET("fgen_t pointer is NULL\n");
 
-    return fgen_add_frame_at(fg, fg->nb_frames, name, fstr);
+    if (!fstr)
+        FGEN_ERR_RET("fgen string is NULL\n");
+
+    if (_add_frame(fg, name, fstr) < 0)
+        FGEN_ERR_RET("Failed to parse frame\n");
+
+    if (fg->flags & (FGEN_VERBOSE || FGEN_DUMP_DATA))
+        fgen_printf("\n");
+
+    return 0;
 }
 
 fgen_t *
-fgen_create(uint16_t max_frames, uint16_t frame_sz, int flags)
+fgen_create(int flags)
 {
     fgen_t *fg;
-    uint16_t bufsz;
-
-    if (max_frames == 0)
-        return NULL;
-
-    if (frame_sz == 0)
-        frame_sz = 1;
-
-    bufsz = FGEN_ALIGN_CEIL(frame_sz, FGEN_CACHE_LINE_SIZE);
 
     fg = calloc(1, sizeof(fgen_t));
     if (fg) {
-        frame_t *f;
-        char *b;
-
-        fg->frame_bufsz = bufsz;
-        fg->max_frames  = max_frames;
-        fg->flags       = flags;
-
-        f = fg->frames = calloc(max_frames, sizeof(frame_t));
-        if (!fg->frames)
-            FGEN_ERR_GOTO(leave, "Unable to allocate frame_t structures\n");
-
-        fg->mm = mmap_alloc(max_frames, bufsz, MMAP_HUGEPAGE_4KB);
-        if (!fg->mm)
-            FGEN_ERR_GOTO(leave, "Unable to allocate frame buffers\n");
-
-        b = mmap_addr(fg->mm);
-
-        for (int i = 0; i < max_frames; i++, f++) {
-            f->fidx  = i;
-            f->data  = b;
-            f->bufsz = bufsz;
-            b += bufsz;
+        fg->flags  = flags;
+        fg->salloc = salloc_create(0);
+        if (!fg->salloc) {
+            free(fg);
+            FGEN_NULL_RET("Failed to allocate memory for build buffer\n");
         }
+        TAILQ_INIT(&fg->head);
     }
-
     return fg;
-leave:
-    fgen_destroy(fg);
-    return NULL;
 }
 
 void
 fgen_destroy(fgen_t *fg)
 {
     if (fg) {
-        for (int i = 0; i < fg->nb_frames; i++)
-            free(fg->frames[i].frame_text);
+        frame_t *f, *tmp;
 
-        free(fg->frames);
-        mmap_free(fg->mm);
+        TAILQ_FOREACH_SAFE (f, &fg->head, next, tmp) {
+            frame_free(fg, f);
+        }
+
+        salloc_destroy(fg->salloc);
         free(fg);
     }
+}
+
+frame_t *
+fgen_find_frame(fgen_t *fg, const char *name)
+{
+    frame_t *f;
+    size_t len;
+
+    if (!fg)
+        return NULL;
+
+    len = strlen(name);
+    TAILQ_FOREACH (f, &fg->head, next) {
+        if (!strncmp(f->name, name, len))
+            return f;
+    }
+
+    return NULL;
 }
 
 static int
@@ -273,13 +285,20 @@ fgen_load_file(fgen_t *fg, const char *filename)
         if (strlen(name) == 0)
             snprintf(name, sizeof(name), "Frame-%d", cnt);
 
-        if (_add_frame(fg, cnt, name, buf) < 0)
+        if (_add_frame(fg, name, buf) < 0)
             FGEN_ERR_RET("Adding a frame failed\n");
     }
 
     return fg->nb_frames;
 }
 
+/*
+ * Example of a fgen string:
+ *  Port0 := Ether( dst=00:01:02:03:04:05 )/IPv4(dst=1.2.3.4)/
+ *           UDP(sport=5678, dport=1234)/TSC()/Payload(size=32, fill=0xaa)/Port(0)
+ *
+ * The frame name is "Port0" and the rest describes the frame content.
+ */
 int
 fgen_load_strings(fgen_t *fg, const char **fstr, int len)
 {
@@ -302,6 +321,7 @@ fgen_load_strings(fgen_t *fg, const char **fstr, int len)
         if (!txt)
             FGEN_ERR_RET("Unable to strdup() text\n");
 
+        // Parse the frame name from the string
         name[0] = '\0';
         if ((c = strstr(s, ":=")) == NULL)
             snprintf(name, sizeof(name), "frame-%d", cnt);
@@ -315,7 +335,7 @@ fgen_load_strings(fgen_t *fg, const char **fstr, int len)
                 FGEN_ERR_RET("Invalid frame name '%s'\n", fstr[cnt]);
         }
 
-        if (_add_frame(fg, cnt, name, s) < 0)
+        if (_add_frame(fg, name, s) < 0)
             FGEN_ERR_RET("Adding a frame failed\n");
     }
 
@@ -347,8 +367,8 @@ fgen_print_string(const char *msg, const char *text)
 void
 fgen_print_frame(const char *msg, frame_t *f)
 {
-    if (!f->frame_text || strlen(f->frame_text) == 0)
+    if (!f->fstr || strlen(f->fstr) == 0)
         FGEN_RET("text pointer is NULL or zero length string\n");
 
-    fgen_print_string((msg) ? msg : f->name, f->frame_text);
+    fgen_print_string((msg) ? msg : f->name, f->fstr);
 }

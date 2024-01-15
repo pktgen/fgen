@@ -5,10 +5,12 @@ sources = files(
     'crc32.c',
 #    'crc32_sse42.c',   # later
     'hexdump.c',
+    'salloc.c',
 	)
 headers = files(
     'crc32.h',
     'hexdump.h',
+    'salloc.h',
     )
 
 deps += [include, log, osal]

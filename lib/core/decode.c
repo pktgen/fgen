@@ -49,8 +49,8 @@ _append(decode_t *dc, const char *format, ...)
     if (nbytes >= dc->buf_len) {
 
         /* Make sure the max length is capped to a max size */
-        if (nbytes >= FGEN_MAX_BUF_LEN)
-            FGEN_ERR_RET("total length %d > %d max\n", nbytes, FGEN_MAX_BUF_LEN);
+        if (nbytes >= FGEN_MAX_FSTR_LEN)
+            FGEN_ERR_RET("total length %d > %d max\n", nbytes, FGEN_MAX_FSTR_LEN);
 
         /* expand the buffer space */
         char *p = realloc(dc->buffer, nbytes);

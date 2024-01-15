@@ -23,8 +23,6 @@ typedef struct decode_s {
     void *data;        /**< Frame data */
     uint16_t data_len; /**< Length of the data buffer */
     uint16_t data_off; /**< Current offset into data frame */
-    uint16_t pid;      /**< Port ID 0 - N or 0xFFFF if not defined */
-    uint16_t rsvd;     /* Reserved */
     char *buffer;      /**< Output buffers pointer */
     int buf_len;       /**< length of buffer data */
     int used;          /**< Amount of used data in buffer */
