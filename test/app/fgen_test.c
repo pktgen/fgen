@@ -4,7 +4,7 @@
 
 #include <stdio.h>             // for size_t, EOF, NULL
 #include <getopt.h>            // for getopt_long, option
-#include <fgen_mmap.h>          // for MMAP_HUGEPAGE_4KB, MMAP_HUGEPAGE_2MB
+#include <fgen_mmap.h>         // for MMAP_HUGEPAGE_4KB, MMAP_HUGEPAGE_2MB
 #include <tst_info.h>          // for tst_cleanup, tst_error, tst_end, tst_s...
 #include <unistd.h>            // for getpagesize
 #include <sys/stat.h>          // for chmod
@@ -30,28 +30,28 @@ static int verbose;
 
 // clang-format off
 static const char *default_strings[] = {
-    "Port0 := Ether( dst=00:01:02:03:04:05 )/"
+    "Frame0 := Ether( dst=00:01:02:03:04:05 )/"
         "IPv4(dst=1.2.3.4)/"
         "UDP(sport=5678, dport=1234)/"
         "TSC()/"
-        "Payload(size=32, fill=0xaa)/Port(0)",
-    "Port1 := Ether( dst=00:01:02:03:04:05 )/"
+        "Payload(size=32, fill=0xaa)",
+    "Frame1 := Ether( dst=00:01:02:03:04:05 )/"
         "IPv4(dst=1.2.3.4, src=5.6.7.8)/"
         "UDP(sport=0x1234, dport=1234)/"
         "TSC()/"
         "Payload(fill=0xbb)",
-    "Port2 := Ether(dst=00:11:22:33:44:55, src=01:ff:ff:ff:ff:ff )/"
+    "Frame2 := Ether(dst=00:11:22:33:44:55, src=01:ff:ff:ff:ff:ff )/"
         "Dot1q(vlan=0x322, cfi=1, prio=7)/"
         "IPv4(dst=1.2.3.4)/"
         "UDP(sport=5678)/"
         "Payload(size=128)",
-    "Port3:=Ether(src=2201:2203:4405)/"
+    "Frame3:=Ether(src=2201:2203:4405)/"
         "Dot1ad(vlan=0x22, cfi=1, prio=7)/"
         "Dot1ad(vlan=0x33, cfi=1, prio=7)/"
         "IPv4(dst=1.2.3.4)/"
         "TCP(sport=0x5678)/"
         "TSC()",
-    "Port4:=Ether(src=2201:2203:4405)/"
+    "Frame4:=Ether(src=2201:2203:4405)/"
         "Dot1Q(vlan=0x22, cfi=1, prio=7)/"
         "Dot1ad(vlan=0x33, cfi=1, prio=7)/"
         "IPv4(dst=1.2.3.4)/"
@@ -91,8 +91,9 @@ fgen_start(tst_info_t *tst __fgen_unused, bool create_pcap, int flags)
 {
     fgen_t *fg                  = NULL;
     struct pcap_pkthdr pcap_hdr = {0};
+    frame_t *f                  = NULL;
 
-    fg = fgen_create(16, 0, flags);
+    fg = fgen_create(flags);
     if (!fg)
         FGEN_ERR_GOTO(leave, "Failed to create frame generator object\n");
 
@@ -105,7 +106,7 @@ fgen_start(tst_info_t *tst __fgen_unused, bool create_pcap, int flags)
         if (fgen_load_strings(fg, default_strings, fgen_countof(default_strings)) < 0)
             FGEN_ERR_GOTO(leave, "Failed to load fgen strings\n");
     }
-    fgen_printf("  [magenta]Found [orange]%d [magenta]packets[]\n", fgen_frame_count(fg));
+    fgen_printf("  [magenta]Found [orange]%d [magenta]packets[]\n", fgen_fcnt(fg));
 
     if (create_pcap && _open_pcap() < 0)
         FGEN_ERR_GOTO(leave, "Failed to create PCAP file\n");
@@ -115,33 +116,29 @@ fgen_start(tst_info_t *tst __fgen_unused, bool create_pcap, int flags)
         goto leave;
 
     fgen_printf("\n");
-    for (int i = 0; i < fgen_frame_count(fg); i++) {
-        frame_t *f = fgen_get_frame(fg, i);
-
-        if (!f)
-            break;
-
+    TAILQ_FOREACH (f, &fg->head, next) {
         if (create_pcap) {
             pcap_hdr.ts.tv_sec  = 0;
             pcap_hdr.ts.tv_usec = 0;
-            pcap_hdr.len        = fgen_data_len(f);
-            pcap_hdr.caplen     = fgen_data_len(f);
+            pcap_hdr.len        = fbuf_data_len(f);
+            pcap_hdr.caplen     = fbuf_data_len(f);
 
-            pcap_dump((char *)pcap_dumper, &pcap_hdr, fgen_mtod(f, char *));
+            pcap_dump((char *)pcap_dumper, &pcap_hdr, fbuf_mtod(f, char *));
         }
 
-        if (fgen_decode(dc, fgen_mtod(f, void *), fgen_data_len(f), 0) < 0)
+        if (fgen_decode(dc, fbuf_mtod(f, void *), fbuf_data_len(f), 0) < 0)
             goto leave;
 
         fgen_print_string(f->name, fgen_decode_text(dc));
     }
 
-    frame_t *r = fgen_get_frame(fg, 1);
-    if (r)
+    frame_t *r = fgen_find_frame(fg, "Frame0");
+    if (!r)
+        FGEN_ERR_GOTO(leave, "Failed to find Frame0\n");
+
+    if (fgen_decode_string(pkt_data_string, fbuf_mtod(r, uint8_t *), fbuf_data_len(r)) < 0)
         goto leave;
-    if (fgen_decode_string(pkt_data_string, fgen_mtod(r, uint8_t *), fgen_data_len(r)) < 0)
-        goto leave;
-    if (fgen_decode(dc, fgen_mtod(r, void *), fgen_data_len(r), 0) < 0)
+    if (fgen_decode(dc, fbuf_mtod(r, void *), fbuf_data_len(r), 0) < 0)
         goto leave;
     fgen_print_string(r->name, fgen_decode_text(dc));
 
