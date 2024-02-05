@@ -372,3 +372,19 @@ fgen_print_frame(const char *msg, frame_t *f)
 
     fgen_print_string((msg) ? msg : f->name, f->fstr);
 }
+
+frame_t *
+fgen_next_frame(fgen_t *fg, frame_t *prev)
+{
+    frame_t *f = NULL;
+
+    if (!fg)
+        FGEN_ERR_RET("fgen_t pointer is NULL\n");
+
+    if (prev)
+        f = prev->next;
+    else
+        f = TAILQ_FIRST(&fg->head);
+
+    return f;
+}
