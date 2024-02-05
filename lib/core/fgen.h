@@ -333,6 +333,19 @@ FGEN_API void fgen_print_string(const char *msg, const char *text);
  */
 FGEN_API frame_t *fgen_find_frame(fgen_t *fg, const char *name);
 
+/**
+ * Find next frame in the frame
+ *
+ * @param fg
+ *   The fgen_t pointer returned from fgen_create().
+ * @param prev
+ *   Previous frame pointer
+ * @return
+ *  The frame_t pointer or NULL if not found.
+ */
+FGEN_API frame_t * fgen_next_frame(fgen_t *fg, frame_t *prev);
+
+
 #ifdef __cplusplus
 }
 #endif

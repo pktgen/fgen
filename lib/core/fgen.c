@@ -379,10 +379,10 @@ fgen_next_frame(fgen_t *fg, frame_t *prev)
     frame_t *f = NULL;
 
     if (!fg)
-        FGEN_ERR_RET("fgen_t pointer is NULL\n");
+        FGEN_NULL_RET("fgen_t pointer is NULL\n");
 
     if (prev)
-        f = prev->next;
+        f = TAILQ_NEXT(prev, next);
     else
         f = TAILQ_FIRST(&fg->head);
 
