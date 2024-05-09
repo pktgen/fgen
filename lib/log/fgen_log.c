@@ -64,6 +64,7 @@ fgen_vlog(uint32_t level, const char *func, int line, const char *format, va_lis
     if (level > fgen_loglevel)
         return 0;
 
+    memset(buff, 0, MAX_LOG_BUF_SIZE + 1);
     if (level <= FGEN_LOG_ERR)
         n = fgen_snprintf(buff, MAX_LOG_BUF_SIZE, "([red]%-24s[]:[green]%4d[]) %s", func, line,
                          format);

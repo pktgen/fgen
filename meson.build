@@ -135,7 +135,7 @@ if json_c.found()
     extra_ldflags += '-ljson-c'
 endif
 
-# Check for libpcap for txgen
+# Check for libpcap for pktperf
 pcap_dep = dependency('libpcap', required: true, static: use_static_libs)
 if pcap_dep.found()
     add_project_link_arguments('-lpcap', language: 'c')
@@ -228,10 +228,19 @@ build_cfg = declare_dependency(include_directories: include_directories('.'))
 
 ##################################################################
 
-subdir('lib')
-subdir('docs')              # Build Docs
-subdir('test')              # Build Tests
-subdir('examples')          # Examples
+dpdk = dependency('libdpdk', required: false, method: 'pkg-config')
+if dpdk.found()
+    dpdk_prefix = dpdk.get_pkgconfig_variable('prefix')
+    message('prefix: ' + dpdk_prefix + ' libdir: ' + get_option('libdir'))
+    dpdk_libs_path = join_paths(dpdk_prefix, get_option('libdir'))
+    message('DPDK lib path: ' + dpdk_libs_path)
+endif
+
+subdirs = ['lib', 'docs', 'test', 'examples']
+
+foreach d:subdirs
+    subdir(d)
+endforeach
 
 libfgen_a = []
 libfgen_so = []
