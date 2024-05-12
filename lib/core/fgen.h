@@ -229,7 +229,7 @@ FGEN_API int fgen_load_file(fgen_t *fg, const char *filename);
  * @return
  *   -1 on error or number of frames loaded
  */
-FGEN_API int fgen_load_strings(fgen_t *fg, const char **frames, int len);
+FGEN_API int fgen_load_strings(fgen_t *fg, const char *const *frames, int len);
 
 /**
  * Parse the fgen string to generate the frame and add to the list.
@@ -343,8 +343,7 @@ FGEN_API frame_t *fgen_find_frame(fgen_t *fg, const char *name);
  * @return
  *  The frame_t pointer or NULL if not found.
  */
-FGEN_API frame_t * fgen_next_frame(fgen_t *fg, frame_t *prev);
-
+FGEN_API frame_t *fgen_next_frame(fgen_t *fg, frame_t *prev);
 
 #ifdef __cplusplus
 }

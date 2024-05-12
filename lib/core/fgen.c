@@ -300,7 +300,7 @@ fgen_load_file(fgen_t *fg, const char *filename)
  * The frame name is "Port0" and the rest describes the frame content.
  */
 int
-fgen_load_strings(fgen_t *fg, const char **fstr, int len)
+fgen_load_strings(fgen_t *fg, const char *const *fstr, int len)
 {
     char *c   = NULL;
     char *s   = NULL;

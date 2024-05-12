@@ -9,5 +9,5 @@ for filename in $(git diff --cached --name-only | grep '.*\.go$'); do
 done
 
 for filename in $(git diff --cached --name-only | grep '.*\.jsonc$'); do
-  ./tools/check_json.py --schema ./tools/fgen.schema $filename
+  ./tools/check_json.py --schema ./tools/cndp.schema $filename
 done
