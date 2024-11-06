@@ -211,10 +211,12 @@ FGEN_API void fgen_destroy(fgen_t *fg);
  *   The fgen_t pointer returned from fgen_create()
  * @param filename
  *   The name of the file to load, must be a fgen text file
+ * @param nb_files
+ *   The number of files to load.
  * @return
  *   -1 on error or number of frames loaded
  */
-FGEN_API int fgen_load_file(fgen_t *fg, const char *filename);
+FGEN_API int fgen_load_files(fgen_t *fg, char **files, int nb_files);
 
 /**
  * Load a fgen string array and create a fgen_file_t structure pointer.
@@ -223,13 +225,13 @@ FGEN_API int fgen_load_file(fgen_t *fg, const char *filename);
  *   The fgen_t pointer returned from fgen_create()
  * @param frames
  *   The array of fgen text strings
- * @param len
+ * @param nb_frames
  *   The number of entries in the array. The len can be zero, but the array
  *   must be NULL terminated.
  * @return
  *   -1 on error or number of frames loaded
  */
-FGEN_API int fgen_load_strings(fgen_t *fg, const char *const *frames, int len);
+FGEN_API int fgen_load_strings(fgen_t *fg, char **frames, int nb_frames);
 
 /**
  * Parse the fgen string to generate the frame and add to the list.

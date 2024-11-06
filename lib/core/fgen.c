@@ -256,40 +256,44 @@ find_next_frame(FILE *f, char *name, int len)
 
 int
 
-fgen_load_file(fgen_t *fg, const char *filename)
+fgen_load_files(fgen_t *fg, char **files, int nb_files)
 {
     FILE *f;
-    char buf[FGEN_MAX_STRING_LENGTH], name[FGEN_FRAME_NAME_LENGTH + 1];
+    char *file, buf[FGEN_MAX_STRING_LENGTH], name[FGEN_FRAME_NAME_LENGTH + 1];
     int ret, cnt;
 
-    if (!fg || !filename || strlen(filename) == 0)
-        FGEN_ERR_RET("Filename is not specified\n");
+    if (!fg || !files)
+        FGEN_ERR_RET("required args are NULL pointers\n");
 
-    f = fopen(filename, "r");
-    if (!f)
-        FGEN_ERR_RET("Unable to open file '%s'\n", filename);
+    for (cnt = 0; cnt < nb_files; cnt++) {
+        file = files[cnt];
 
-    memset(name, 0, sizeof(name));
-    memset(buf, 0, sizeof(buf));
+        f = fopen(file, "r");
+        if (!f)
+            FGEN_ERR_RET("Unable to open file '%s'\n", file);
 
-    for (cnt = 0;; cnt++) {
-        name[0] = '\0';
-        ret     = find_next_frame(f, name, sizeof(name));
-        if (ret <= 0)
-            break;
+        memset(name, 0, sizeof(name));
+        memset(buf, 0, sizeof(buf));
 
-        buf[0] = '\0';
-        if (get_frame_string(f, buf, sizeof(buf)) == 0)
-            break;
+        for (cnt = 0;; cnt++) {
+            name[0] = '\0';
+            ret     = find_next_frame(f, name, sizeof(name));
+            if (ret <= 0)
+                break;
 
-        if (strlen(name) == 0)
-            snprintf(name, sizeof(name), "Frame-%d", cnt);
+            buf[0] = '\0';
+            if (get_frame_string(f, buf, sizeof(buf)) == 0)
+                break;
 
-        if (_add_frame(fg, name, buf) < 0)
-            FGEN_ERR_RET("Adding a frame failed\n");
+            if (strlen(name) == 0)
+                snprintf(name, sizeof(name), "Frame-%d", cnt);
+
+            if (_add_frame(fg, name, buf) < 0)
+                FGEN_ERR_RET("Adding a frame failed in file %s\n", file);
+        }
     }
 
-    return fg->nb_frames;
+    return fgen_fcnt(fg);
 }
 
 /*
@@ -300,7 +304,7 @@ fgen_load_file(fgen_t *fg, const char *filename)
  * The frame name is "Port0" and the rest describes the frame content.
  */
 int
-fgen_load_strings(fgen_t *fg, const char *const *fstr, int len)
+fgen_load_strings(fgen_t *fg, char **fstr, int nb_frames)
 {
     char *c   = NULL;
     char *s   = NULL;
@@ -313,8 +317,8 @@ fgen_load_strings(fgen_t *fg, const char *const *fstr, int len)
     if (!fstr)
         FGEN_ERR_RET("Frame string pointer array is NULL\n");
 
-    for (cnt = 0; cnt < len; cnt++) {
-        if (len == 0 && fstr[cnt] == NULL)
+    for (cnt = 0; cnt < nb_frames; cnt++) {
+        if (nb_frames == 0 && fstr[cnt] == NULL)
             break;
 
         s = txt = strdup(fstr[cnt]);
