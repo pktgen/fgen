@@ -23,6 +23,8 @@
 #include <pktperf.h>
 
 #include <fgen.h>
+#include <fgen/fgen_stdio.h>
+#include <fgen/fgen_version.h>
 
 txpkts_info_t *info;
 
@@ -321,6 +323,7 @@ info_alloc(void)
 int
 main(int argc, char **argv)
 {
+    fgen_printf("Version: %s\n", fgen_version());
     info = info_alloc();
     if (info) {
         if (initialize_dpdk(argc, argv) == 0) {

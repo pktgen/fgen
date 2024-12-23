@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (c) 2019-2023 Intel Corporation
+ * Copyright (c) 2019-2025 Intel Corporation
  */
 
 #include <stdio.h>         // for fprintf, snprintf, fflush, FILE, NULL, stdout
@@ -21,7 +21,7 @@ salloc_create(uint64_t size)
 
     if (size == 0)
         size = DEFAULT_SALLOC_BLOCK_SIZE;
-    
+
     salloc->ptr = (void *)realloc(salloc->ptr, size);
     if (!salloc->ptr) {
         free(salloc);

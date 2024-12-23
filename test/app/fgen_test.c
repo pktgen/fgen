@@ -18,6 +18,7 @@
 #include <bits/getopt_core.h>        // for optind
 #include <fgen.h>
 #include <fgen_strings.h>
+#include <fgen_version.h>
 
 #include "fgen_test.h"
 
@@ -229,6 +230,8 @@ main(int argc, char **argv)
         {NULL, 0, 0, 0}
     };
     // clang-format on
+
+    fgen_printf("Version: %s\n", fgen_version());
 
     info = calloc(1, sizeof(test_info_t));
     if (!info) {

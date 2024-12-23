@@ -1,8 +1,8 @@
-# FGEN - Cloud Native Data Plane
+# FGEN - Frame Generator
 
 ## Overview
 
-Cloud Native Data Plane (FGEN) is a collection of userspace libraries for accelerating packet
+Frame Generator (FGEN) is a collection of userspace libraries for accelerating packet
 processing for cloud applications. It aims to provide better performance than that of standard
 network socket interfaces by taking advantage of platform technologies such as Intel(R) AVX-512,
 Intel(R) DSA, CLDEMOTE, etc. The I/O layer is primarily built on AF_XDP, an interface that
@@ -65,26 +65,16 @@ The following shows a subset of the directory structure.
 
 ```bash
 .
-├── ansible                   # Ansible playbook to install in a system(s)
-├── containerization          # Container configuration and setup scripts for Docker/K8s
-├── doc                       # Documentation APIs, guides, getting started, ...
+├── docs                      # Documentation APIs, guides, getting started, ...
 ├── examples                  # Example applications to understand how to use FGEN features
-├── lang                      # Language bindings and examples
-│   ├── go                    # Go Language bindings to FGEN and tools (WIP)
-│   └── rs                    # Rust Language bindings for FGEN/Wireguard (WIP)
 ├── lib                       # Set of libraries for building FGEN applications
-│   ├── cnet                  # Userspace network stack
-│   ├── common                # Libraries used by core and applications libraries
 │   ├── core                  # Core libraries for FGEN
-│   ├── include               # Common headers for FGEN and applications
-│   └── usr                   # User set of libraries that are optional for developer
+│   ├── include               # FGEN includes
+│   ├── log                   # Log system
+│   ├── mmap                  # memory map allocator
+│   ├── osal                  # OS abstraction layer
+│   └── utils                 # Misc utils
 ├── test                      # Unit test framework
-│   ├── common                # Common test code
-│   ├── fuzz                  # Fuzzing (WIP)
-│   └── testcne               # Functional unit testing application
-├── tools                     # Tools for building FGEN
-│   └── vscode                # Configuration files for vscode
-└── usrtools                  # Tools for users
-    ├── cnectl                # Remote CLI for FGEN applications
-    └── txgen                 # Traffic Generator using AF_XDP and FGEN
+    ├── common                #
+    └── app                   # Functional unit testing application
 ```

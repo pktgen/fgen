@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (c) 2019-2023 Intel Corporation
+ * Copyright (c) 2019-2025 Intel Corporation
  */
 
 #ifndef _FGEN_SALLOC_H_
@@ -11,7 +11,7 @@
  * Simple API to allocate from a block of memory. This API does not provide any
  * protection against memory corruption or memory leaks. The API does not
  * provide any methods to free memory allocated by this API.
- * 
+ *
  * The API allocates memory from a block of memory and returns the offset of the
  * memory allocated from the block. The memory block can dynamically be resized as more
  * memory is needed, which means the memory block address can be changed.

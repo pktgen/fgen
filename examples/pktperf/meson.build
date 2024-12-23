@@ -6,7 +6,7 @@ if dpdk.found()
 
 	cflags = ['-DALLOW_EXPERIMENTAL_API'] # used for DPDK APIs
 
-	deps = [dpdk, include, fgen, mmap, utils]
+	deps = [dpdk, include, fgen, osal, mmap, utils]
 
 	deps += [cc.find_library('rte_net_i40e', dirs: [dpdk_libs_path], required: false)]
 	deps += [cc.find_library('rte_net_ixgbe', dirs: [dpdk_libs_path], required: false)]
