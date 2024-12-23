@@ -64,7 +64,8 @@ print_stats(void)
         }
 
         memset(&port->link, 0, sizeof(port->link));
-        rte_eth_link_get_nowait(port->pid, &port->link);
+        if (rte_eth_link_get_nowait(port->pid, &port->link) < 0)
+            return;
         packet_rate(port);
 
         rte_eth_stats_get(port->pid, &port->stats);
@@ -97,7 +98,8 @@ print_stats(void)
         }
 
         memset(&link, 0, sizeof(link));
-        rte_eth_link_get_nowait(pid, &link);
+        if (rte_eth_link_get_nowait(pid, &link) < 0)
+            return;
         rte_eth_link_to_str(link_status_text, sizeof(link_status_text), &link);
 
         printf("%2u >> %s, ", pid, link_status_text);
