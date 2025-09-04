@@ -29,6 +29,7 @@
 #define MAPPING_OPT     "map"
 #define TIMEOUT_OPT     "timeout"
 #define PROMISCUOUS_OPT "no-promiscuous"
+#define JUMBO_OPT       "jumbo"
 #define MBUF_COUNT_OPT  "mbuf-count"
 #define FGEN_STRING_OPT "fgen"
 #define FGEN_FILE_OPT   "fgen-file"
@@ -47,6 +48,7 @@ static const struct option lgopts[] = {
 	{TIMEOUT_OPT,		    1, 0, 'T'},
     {MBUF_COUNT_OPT,        1, 0, 'M'},
 	{PROMISCUOUS_OPT,       0, 0, 'P'},
+	{JUMBO_OPT,             0, 0, 'j'},
 	{FGEN_STRING_OPT,       0, 0, 'f'},
 	{FGEN_FILE_OPT,         0, 0, 'F'},
     {VERBOSE_OPT,           0, 0, 'v'},
@@ -57,7 +59,7 @@ static const struct option lgopts[] = {
 };
 // clang-format on
 
-static const char *short_options = "t:b:s:r:d:m:T:M:F:f:Pvhtu";
+static const char *short_options = "t:b:s:r:d:m:T:M:F:f:Pjvhtu";
 
 /* display usage */
 void
@@ -76,6 +78,7 @@ usage(int err)
         "\t-M|--mbuf-count <count>  Number of mbufs to allocate (default %'d, max %'d)\n"
         "\t-t|--tcp                 Use TCP\n"
         "\t-u|--udp                 Use UDP (default UDP)\n"
+        "\t-j|--jumbo               Enable jumbo frame support\n"
         "\t-f|--fgen <string>       FGEN string to load\n"
         "\t-F|--fgen-file <file>    FGEN file to load\n"
         "\t-v|--verbose             Verbose output\n"
@@ -90,35 +93,44 @@ static struct rte_mempool *
 create_pktmbuf_pool(const char *type, uint16_t lid, uint16_t pid, uint32_t nb_mbufs,
                     uint32_t cache_size)
 {
+    struct rte_mempool *mp;
     char name[RTE_MEMZONE_NAMESIZE];
 
-    printf("Creating %s mbuf pool for lcore %3u, port %2u, MBUF Count %'u on NUMA %d\n", type, lid,
-           pid, nb_mbufs, rte_eth_dev_socket_id(pid));
-
     /* Create the pktmbuf pool one per lcore/port */
-    snprintf(name, sizeof(name), "%s-%u/%u", type, lid, pid);
-    return rte_pktmbuf_pool_create(name, info->mbuf_count, cache_size, 0, RTE_MBUF_DEFAULT_BUF_SIZE,
-                                   rte_eth_dev_socket_id(pid));
+    snprintf(name, sizeof(name) - 1, "%s-%u/%u", type, lid, pid);
+
+    printf("Creating %s mbuf pool for lcore %3u, port %2u, MBUF Count %'u, size %'u on NUMA %d\n",
+           name, lid, pid, nb_mbufs, info->mbuf_size, pg_eth_dev_socket_id(pid));
+
+    mp = rte_pktmbuf_pool_create(name, info->mbuf_count, cache_size, 0, info->mbuf_size,
+                                 pg_eth_dev_socket_id(pid));
+    return mp;
 }
 
 static int
 parse_cores(l2p_port_t *port, const char *cores, int mode)
 {
-    char *core_map = NULL;
-    int num_cores  = 0, l, h, num_fields;
-    char *fields[3];
+    char *core_map  = NULL;
+    int num_cores   = 0, l, h, num_fields;
+    char *fields[3] = {0}, *f0, *f1;
     char name[64];
 
     core_map = alloca(MAX_ALLOCA_SIZE);
     if (!core_map)
         ERR_RET("out of memory for core string\n");
 
-    snprintf(core_map, MAX_ALLOCA_SIZE, "%s", cores);
+    snprintf(core_map, MAX_ALLOCA_SIZE - 1, "%s", cores);
 
     num_fields = rte_strsplit(core_map, strlen(core_map), fields, RTE_DIM(fields), '-');
     if (num_fields <= 0 || num_fields > 2)
         ERR_RET("invalid core mapping '%s'\n", cores);
     DBG_PRINT("num_fields: %d from cores '%s'\n", num_fields, cores);
+    f0 = fields[0];
+    f1 = (fields[1] == NULL) ? f0 : fields[1];
+    f0 = pg_strtrimset(f0, "[]");
+    f0 = pg_strtrimset(f0, "{}");
+    f1 = pg_strtrimset(f1, "[]");
+    f1 = pg_strtrimset(f1, "{}");
 
     if (num_fields == 1) {
         DBG_PRINT("single core specified: %s\n", fields[0]);
@@ -132,11 +144,11 @@ parse_cores(l2p_port_t *port, const char *cores, int mode)
     DBG_PRINT("lcore: %d to %d\n", l, h);
     do {
         l2p_lport_t *lport;
-        int32_t sid = rte_eth_dev_socket_id(port->pid);
+        int32_t sid = pg_eth_dev_socket_id(port->pid);
 
         lport = info->lports[l];
         if (lport == NULL) {
-            snprintf(name, sizeof(name), "lport-%u:%u", l, port->pid);
+            snprintf(name, sizeof(name) - 1, "lport-%u:%u", l, port->pid);
             lport = rte_zmalloc_socket(name, sizeof(l2p_lport_t), RTE_CACHE_LINE_SIZE, sid);
             if (!lport)
                 ERR_RET("Failed to allocate memory for lport info\n");
@@ -194,7 +206,7 @@ parse_cores(l2p_port_t *port, const char *cores, int mode)
 static int
 parse_mapping(const char *map)
 {
-    char *fields[3], *lcores[3];
+    char *fields[3] = {0}, *f0, *f1, *lcores[3] = {0}, *c0, *c1;
     char *mapping = NULL;
     int num_fields, num_cores, num_lcores;
     uint16_t pid;
@@ -205,41 +217,109 @@ parse_mapping(const char *map)
     mapping = alloca(MAX_ALLOCA_SIZE);
     if (!mapping)
         ERR_RET("unable to allocate map string\n");
-    snprintf(mapping, MAX_ALLOCA_SIZE, "%s", map);
-    DBG_PRINT("Mapping: '%s'\n", map);
+    snprintf(mapping, MAX_ALLOCA_SIZE - 1, "%s", map);
+    DBG_PRINT("Mapping: '%s'\n", mapping);
 
     /* parse map into a lcore list and port number */
     num_fields = rte_strsplit(mapping, strlen(mapping), fields, RTE_DIM(fields), '.');
     if (num_fields != 2)
-        ERR_RET("Invalid mapping format '%s'\n", map);
-    DBG_PRINT("Mapping: fields(%u) lcore '%s', port '%s'\n", num_fields, fields[0], fields[1]);
+        ERR_RET("Invalid mapping format '%s'\n", mapping);
+    f0 = fields[0];
+    f1 = (fields[1] == NULL) ? f0 : fields[1];
+    f0 = pg_strtrimset(f0, "[]");
+    f0 = pg_strtrimset(f0, "{}");
+    f1 = pg_strtrimset(f1, "[]");
+    f1 = pg_strtrimset(f1, "{}");
+    DBG_PRINT("Mapping: fields(%u) lcore '%s', port '%s'\n", num_fields, f0, f1);
 
-    pid = strtol(fields[1], NULL, 10);
+    pid = strtol(f1, NULL, 10);
     if (pid >= RTE_MAX_ETHPORTS)
-        ERR_RET("Invalid port number '%s'\n", fields[1]);
+        ERR_RET("Invalid port number '%s'\n", f1);
     DBG_PRINT("Mapping: Port %u\n", pid);
 
     info->ports[pid].pid = pid;
 
-    num_lcores = rte_strsplit(fields[0], strlen(mapping), lcores, RTE_DIM(lcores), ':');
+    num_lcores = rte_strsplit(f0, strlen(f0), lcores, RTE_DIM(lcores), ':');
+    if (num_lcores <= 0 || num_lcores > 2)
+        ERR_RET("Invalid mapping format '%s'\n", fields[0]);
+    c0 = lcores[0];
+    c1 = (lcores[1] == NULL) ? c0 : lcores[1];
     if (num_lcores == 1) {
-        num_cores = parse_cores(&info->ports[pid], lcores[0], LCORE_MODE_BOTH);
+        num_cores = parse_cores(&info->ports[pid], c0, LCORE_MODE_BOTH);
         if (num_cores <= 0)
-            ERR_RET("Invalid mapping format '%s'\n", map);
+            ERR_RET("Invalid mapping format '%s'\n", c0);
         DBG_PRINT("num_cores for both Rx/Tx: %d\n", num_cores);
     } else {
-        num_cores = parse_cores(&info->ports[pid], lcores[0], LCORE_MODE_RX);
+        num_cores = parse_cores(&info->ports[pid], c0, LCORE_MODE_RX);
         if (num_cores <= 0)
-            ERR_RET("Invalid mapping format '%s'\n", map);
+            ERR_RET("Invalid mapping format '%s'\n", c0);
         DBG_PRINT("num_cores for RX: %d\n", num_cores);
 
-        num_cores = parse_cores(&info->ports[pid], lcores[1], LCORE_MODE_TX);
+        num_cores = parse_cores(&info->ports[pid], c1, LCORE_MODE_TX);
         if (num_cores <= 0)
-            ERR_RET("Invalid mapping format '%s'\n", map);
+            ERR_RET("Invalid mapping format '%s'\n", c1);
         DBG_PRINT("num_cores for TX: %d\n", num_cores);
     }
 
     return EXIT_SUCCESS;
+}
+
+static void
+validate_args(void)
+{
+    if (info->tx_rate > MAX_TX_RATE)
+        info->tx_rate = DEFAULT_TX_RATE;
+    DBG_PRINT("Packet Tx rate: %'u\n", info->tx_rate);
+
+    if (info->burst_count <= 0)
+        info->burst_count = DEFAULT_BURST_COUNT;
+    else if (info->burst_count > MAX_BURST_COUNT)
+        info->burst_count = MAX_BURST_COUNT;
+    DBG_PRINT("RX/TX burst count: %'u\n", info->burst_count);
+
+    if (info->pkt_size <= 0)
+        info->pkt_size = DEFAULT_PKT_SIZE;
+    else if (info->pkt_size > MAX_PKT_SIZE)
+        info->pkt_size = MAX_PKT_SIZE;
+    DBG_PRINT("Packet size: %'u\n", info->pkt_size);
+
+    if (info->mbuf_count < DEFAULT_MBUF_COUNT)
+        info->mbuf_count = DEFAULT_MBUF_COUNT;
+    else if (info->mbuf_count > MAX_MBUF_COUNT) {
+        ERR_PRINT("invalid MBUF Count value 1 <= %'u <= %'d (default %'d)\n", info->mbuf_count,
+                  MAX_MBUF_COUNT, DEFAULT_MBUF_COUNT);
+        usage(EXIT_FAILURE);
+    }
+    DBG_PRINT("Timeout period: %'u\n", info->timeout_secs);
+
+    if (info->nb_rxd < MIN_RX_DESC || info->nb_rxd > MAX_RX_DESC)
+        info->nb_rxd = DEFAULT_RX_DESC;
+    if (info->nb_txd < MIN_TX_DESC || info->nb_txd > MAX_TX_DESC)
+        info->nb_txd = DEFAULT_TX_DESC;
+    DBG_PRINT("Rx/Tx Ring Size: %'u/%'u\n", info->nb_rxd, info->nb_txd);
+
+    if (info->timeout_secs <= 0)
+        info->timeout_secs = DEFAULT_TIMEOUT_PERIOD;
+    else if (info->timeout_secs > MAX_TIMEOUT_PERIOD) {
+        ERR_PRINT("invalid timeout value 1 <= %'u <= %'d (default %d)\n", info->timeout_secs,
+                  MAX_TIMEOUT_PERIOD, DEFAULT_TIMEOUT_PERIOD);
+        usage(EXIT_FAILURE);
+    }
+    DBG_PRINT("Timeout period: %'u\n", info->timeout_secs);
+
+    printf("num_ports: %'u, nb_rxd %'u, nb_txd %'u, burst %'u, lcores %'u\n", info->num_ports,
+           info->nb_rxd, info->nb_txd, info->burst_count, rte_lcore_count());
+    info->mbuf_count += info->num_ports * (info->nb_rxd + info->nb_txd + info->burst_count +
+                                           (rte_lcore_count() * MEMPOOL_CACHE_SIZE));
+    info->mbuf_count = RTE_MAX(info->mbuf_count, DEFAULT_MBUF_COUNT);
+
+    DBG_PRINT("TX packet application started, Burst size %'u, Packet size %'u, Rate %u%%\n",
+              info->burst_count, info->pkt_size, info->tx_rate);
+
+    if (info->num_mappings == 0) {
+        ERR_PRINT("No port mappings specified, use '-m' option\n");
+        usage(EXIT_FAILURE);
+    }
 }
 
 /* Parse the argument given on the command line of the application */
@@ -255,11 +335,13 @@ parse_args(int argc, char **argv)
     argvopt = argv;
 
     info->promiscuous_on = DEFAULT_PROMISCUOUS_MODE;
+    info->jumbo_frame_on = DEFAULT_JUMBO_FRAME_MODE;
     info->timeout_secs   = DEFAULT_TIMEOUT_PERIOD;
     info->burst_count    = DEFAULT_BURST_COUNT;
     info->nb_rxd         = DEFAULT_RX_DESC;
     info->nb_txd         = DEFAULT_TX_DESC;
     info->mbuf_count     = DEFAULT_MBUF_COUNT;
+    info->mbuf_size      = RTE_MBUF_DEFAULT_BUF_SIZE;
     info->pkt_size       = DEFAULT_PKT_SIZE;
     info->tx_rate        = DEFAULT_TX_RATE;
     info->ip_proto       = IPPROTO_UDP;
@@ -294,7 +376,7 @@ parse_args(int argc, char **argv)
             break;
 
         case 'd': /* Number of Rx/Tx descriptors */
-            snprintf(rxtx_desc, sizeof(rxtx_desc), "%s", optarg);
+            snprintf(rxtx_desc, sizeof(rxtx_desc) - 1, "%s", optarg);
             if (rte_strsplit(rxtx_desc, strlen(rxtx_desc), descs, RTE_DIM(descs), '/') != 2)
                 ERR_RET("Invalid Rx/Tx descriptors '%s'\n", optarg);
             info->nb_rxd = strtoul(descs[0], NULL, 10);
@@ -364,6 +446,11 @@ parse_args(int argc, char **argv)
             info->ip_proto = IPPROTO_UDP;
             break;
 
+        case 'j': /* Jumbo frames */
+            info->mbuf_size      = JUMBO_MBUF_SIZE;
+            info->jumbo_frame_on = 1;
+            break;
+
         case 'v': /* Verbose option */
             info->verbose = true;
             break;
@@ -377,6 +464,7 @@ parse_args(int argc, char **argv)
             break;
         }
     }
+    validate_args();
 
     ret    = optind - 1;
     optind = 1; /* reset getopt lib */

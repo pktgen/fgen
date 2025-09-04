@@ -8,12 +8,6 @@ if dpdk.found()
 
 	deps = [dpdk, include, fgen, osal, mmap, utils]
 
-	deps += [cc.find_library('rte_net_i40e', dirs: [dpdk_libs_path], required: false)]
-	deps += [cc.find_library('rte_net_ixgbe', dirs: [dpdk_libs_path], required: false)]
-	deps += [cc.find_library('rte_net_ice', dirs: [dpdk_libs_path], required: false)]
-	deps += [cc.find_library('rte_bus_vdev', dirs: [dpdk_libs_path], required: false)]
-	deps += [cc.find_library('rte_net_bond', dirs: [dpdk_libs_path], required: false)]
-
 	deps += [dependency('threads')]
 	deps += [dependency('numa', required: true)]
 	deps += [dependency('pcap', required: true)]
@@ -25,4 +19,6 @@ if dpdk.found()
 			c_args: cflags,
 			install: true,
 			dependencies: deps)
+else
+    message('No DPDK found not building pktperf application')
 endif

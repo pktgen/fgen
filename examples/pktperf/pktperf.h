@@ -29,6 +29,7 @@ extern "C" {
 
 #include <fgen_common.h>
 #include <fgen.h>
+#include <utils.h>
 
 #define PRINT(format, args...)  \
     do {                        \
@@ -75,10 +76,16 @@ extern "C" {
         if (info->verbose) {                                           \
             char buf[64];                                              \
             snprintf(buf, sizeof(buf), "%s(%'d)", __func__, __LINE__); \
-            printf("DEBUG>%-24s:" format, buf, ##args);                \
+            printf("DEBUG> %-24s:" format, buf, ##args);               \
             fflush(stdout);                                            \
         }                                                              \
     } while (0)
+
+#define JUMBO_ETHER_MTU     9216        // 9K total size of the Ethernet jumbo frame
+#define JUMBO_DATAROOM_SIZE 9000        // 9K data room size in the Ethernet jumbo frame
+#define JUMBO_HEADROOM_SIZE \
+    (JUMBO_ETHER_MTU - JUMBO_DATAROOM_SIZE)        // 9K headroom size in the Ethernet jumbo frame
+#define JUMBO_MBUF_SIZE (JUMBO_ETHER_MTU + RTE_PKTMBUF_HEADROOM)
 
 enum {
     DEFAULT_PKT_SIZE         = 64,           /* Default packet size */
@@ -89,6 +96,7 @@ enum {
     DEFAULT_TX_DRAIN_US      = 100,          /* default TX drain every ~100us */
     DEFAULT_TIMEOUT_PERIOD   = 1,            /* 1 seconds default */
     DEFAULT_PROMISCUOUS_MODE = 1,            /* default to enabled */
+    DEFAULT_JUMBO_FRAME_MODE = 0,            /* default to disabled for jumbo frames */
     DEFAULT_MBUF_COUNT       = (8 * 1024),   /* default to 16K mbufs */
     MAX_MBUF_COUNT           = (128 * 1024), /* max to 128K mbufs */
     MIN_RX_DESC              = 512,          /* Minimum number of RX descriptors */
@@ -146,7 +154,7 @@ typedef struct l2p_port_s {
     uint16_t num_rx_qids;           /* Number of Rx queues */
     uint16_t num_tx_qids;           /* Number of Tx queues */
     uint16_t mtu_size;              /* MTU size */
-    uint16_t max_pkt_size;          /* Max packet size */
+    uint16_t cksum_requires_phdr;   /* Flag to indicate if pseudo-header is needed for port */
     uint64_t tx_cycles;             /* Tx cycles */
     uint64_t wire_size;             /* Port wire size */
     uint64_t pps;                   /* Packets per second */
@@ -181,8 +189,10 @@ typedef struct {
 
     /* Configuration values from command line options */
     uint32_t mbuf_count;     /* Number of mbufs to allocate per port. */
+    uint32_t mbuf_size;      /* Size of the MBUFS being used */
     uint16_t tx_rate;        /* packet TX rate percentage */
     uint16_t promiscuous_on; /* Ports set in promiscuous mode off by default. */
+    uint16_t jumbo_frame_on; /* Enable jumbo frame support */
     uint16_t burst_count;    /* Burst size for RX and TX */
     uint16_t pkt_size;       /* Packet size with FCS */
     uint16_t nb_rxd;         /* number of RX descriptors */
@@ -202,6 +212,22 @@ int port_setup(l2p_port_t *port);
 void packet_constructor(l2p_lport_t *lport, uint8_t *pkt, uint16_t proto);
 
 void usage(int err);
+
+static __inline__ int
+pg_socket_id(void)
+{
+    int sid = rte_socket_id();
+
+    return (sid == -1) ? 0 : sid;
+}
+
+static __inline__ int
+pg_eth_dev_socket_id(int pid)
+{
+    int sid = rte_eth_dev_socket_id(pid);
+
+    return (sid == -1) ? 0 : sid;
+}
 
 #ifdef __cplusplus
 }
