@@ -6,7 +6,11 @@
       "Bash(meson setup *)",
       "Bash(meson introspect *)",
       "Bash(python3 -c \"import sys,json; opts=json.load\\(sys.stdin\\); [print\\(o['name'],o['value']\\) for o in opts if 'std' in o['name'].lower\\(\\)]\")",
-      "Bash(python3 -c \"import sys,json; opts=json.load\\(sys.stdin\\); [print\\(o['name'],'=',o['value']\\) for o in opts if 'std' in o['name'].lower\\(\\)]\")"
+      "Bash(python3 -c \"import sys,json; opts=json.load\\(sys.stdin\\); [print\\(o['name'],'=',o['value']\\) for o in opts if 'std' in o['name'].lower\\(\\)]\")",
+      "Bash(make rebuild *)",
+      "Bash(ninja -C builddir)",
+      "Bash(ninja -C builddir --rebuild)",
+      "Bash(xargs touch)"
     ]
   }
 }
