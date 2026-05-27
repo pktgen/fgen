@@ -1,5 +1,5 @@
 ..  SPDX-License-Identifier: BSD-3-Clause
-    Copyright (c) 2010-2023 Intel Corporation.
+    Copyright (c) 2010-2026 Intel Corporation.
 
 .. _Mempool_Library:
 

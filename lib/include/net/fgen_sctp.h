@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
  * Copyright (c) 1982, 1986, 1990, 1993
  *      The Regents of the University of California.
- * Copyright (c) 2023-2024 Intel Corporation.
+ * Copyright (c) 2023-2026 Intel Corporation.
  * All rights reserved.
  */
 

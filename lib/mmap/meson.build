@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2023-2024 Intel Corporation
+# Copyright (c) 2023-2026 Intel Corporation
 
 sources = files('fgen_mmap.c')
 headers = files('fgen_mmap.h')

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2024 Intel Corp
+# Copyright (c) 2024-2026 Intel Corp
 
 doxygen = find_program('doxygen', required: get_option('enable_docs'))
 

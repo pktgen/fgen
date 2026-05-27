@@ -1,10 +1,11 @@
-## PKTPERF example application to verify Rx/Tx performance with multiple cores
+# PKTPERF example application to verify Rx/Tx performance with multiple cores
 
-The `pktperf` example application is used to verify Rx/Tx performance with mutiple cores or queues. The application is configured from the command line arguments and does not have CLI to configure on the fly.
+The `pktperf` example application is used to verify Rx/Tx performance with multiple cores or queues. The application is configured from the command line arguments and does not have CLI to configure on the fly.
 
 ---
+
 ```console
-**Copyright &copy; <2023>, Intel Corporation. All rights reserved.**
+**Copyright &copy; <2023-2026>, Intel Corporation. All rights reserved.**
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -39,9 +40,10 @@ SPDX-License-Identifier: BSD-3-Clause
 
 pktperf: Created 2023 by Keith Wiles @ Intel.com
 ```
+
 ---
 
-### Overview
+## Overview
 
 The implementation uses multiple Rx/Tx queues per port, which is required to achieve maximum performance for receiving and transmitting frames. If your NIC does not support multiple queues, but does support multiple `virtual functions` per physical port, then you should create multiple `virtual functions` network devices and configure them using the `-m` mapping parameters. A single core can only be attached to one network device or port, which means you can not have a single core processing more then one network device or port.
 
@@ -53,17 +55,18 @@ The command line arguments contain the standard DPDK arguments with the pktperf 
 
 ```console
 pktperf [EAL options] -- [-b burst] [-s size] [-r rate] [-d rxd/txd] [-m map] [-T secs] [-P] [-M mbufs] [-v] [-h]
-	-b|--burst-count <burst> Number of packets for Rx/Tx burst (default 32)
-	-s|--pkt-size <size>     Packet size in bytes (default 64) includes FCS bytes
-	-r|--rate <rate>         Packet TX rate percentage 0=off (default 100)
-	-d|--descriptors <Rx/Tx> Number of RX/TX descriptors (default 1,024/1,024)
-	-m|--map <map>           Core to Port/queue mapping '[Rx-Cores:Tx-Cores].port'
-	-T|--timeout <secs>      Timeout period in seconds (default 1 second)
-	-P|--no-promiscuous      Turn off promiscuous mode (default On)
-	-M|--mbuf-count <count>  Number of mbufs to allocate (default 8,192, max 131,072)
-	-v|--verbose             Verbose output
-	-h|--help                Print this help
+ -b|--burst-count <burst> Number of packets for Rx/Tx burst (default 32)
+ -s|--pkt-size <size>     Packet size in bytes (default 64) includes FCS bytes
+ -r|--rate <rate>         Packet TX rate percentage 0=off (default 100)
+ -d|--descriptors <Rx/Tx> Number of RX/TX descriptors (default 1,024/1,024)
+ -m|--map <map>           Core to Port/queue mapping '[Rx-Cores:Tx-Cores].port'
+ -T|--timeout <secs>      Timeout period in seconds (default 1 second)
+ -P|--no-promiscuous      Turn off promiscuous mode (default On)
+ -M|--mbuf-count <count>  Number of mbufs to allocate (default 8,192, max 131,072)
+ -v|--verbose             Verbose output
+ -h|--help                Print this help
 ```
+
 ### Command line example
 
 ```bash

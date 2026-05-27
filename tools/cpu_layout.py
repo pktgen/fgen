@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2010-2014,2021 Intel Corporation
+# Copyright (c) 2010-2026 Intel Corporation
 # Copyright (c) 2017 Cavium, Inc. All rights reserved.
 
 sockets = []
