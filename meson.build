@@ -11,7 +11,8 @@ project('fgen', 'C', 'cpp',
         'buildtype=release',
         'default_library=shared',
         'warning_level=3',
-        'werror=true'
+        'werror=true',
+        'c_std=c2x'
     ],
     meson_version: '>= 1.2.0'
 )
