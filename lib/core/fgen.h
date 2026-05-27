@@ -1,5 +1,25 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2023-2024 Intel Corporation
+ * Copyright(c) 2023-2026 Intel Corporation
+ */
+
+/**
+ * @file fgen.h
+ * @brief Public API for the fgen frame generator core library.
+ *
+ * fgen converts a human-readable, slash-delimited protocol layer description
+ * string into a binary network frame stored in a shared slab allocator.  The
+ * same library supports the reverse direction: decoding raw packet bytes back
+ * into the text representation.
+ *
+ * Typical usage:
+ * @code
+ *   fgen_t *fg = fgen_create(0);
+ *   fgen_add_frame(fg, "pkt0",
+ *       "Ether(dst=00:11:22:33:44:55)/IPv4(dst=1.2.3.4)/UDP(dport=9)/Payload(size=64)");
+ *   frame_t *f = fgen_find_frame(fg, "pkt0");
+ *   // fbuf_mtod(f, void *) points to the encoded binary frame
+ *   fgen_destroy(fg);
+ * @endcode
  */
 
 #ifndef __FGEN_H
@@ -18,6 +38,7 @@ typedef void fgen_decode_t;
 
 #include <fgen_mmap.h>
 
+/** @brief Library-wide size and limit constants. */
 enum {
     FGEN_MAX_STRING_LENGTH = 4096, /**< Maximum string length for text string */
     FGEN_MAX_LAYERS        = 32,   /**< Maximum number of layers in the text string */
@@ -35,6 +56,14 @@ enum {
     FGEN_MAX_FRAME_SIZE    = (FGEN_BUF_COUNT * FGEN_BUF_SIZE), /**< Maximum buffer size */
 };
 
+/**
+ * @brief Protocol layer type identifiers used throughout the encode/decode pipeline.
+ *
+ * Each value names a supported protocol layer.  @c FGEN_ERROR_TYPE (-1) is
+ * returned by encoder functions to signal a parse failure.  @c FGEN_TYPE_COUNT
+ * is a sentinel marking the end of the valid range and doubles as the "done"
+ * type via the @c FGEN_DONE_TYPE alias.
+ */
 typedef enum {
     FGEN_ETHER_TYPE,     /**< Ethernet type layer */
     FGEN_DOT1Q_TYPE,     /**< Dot1Q type layer */
@@ -52,7 +81,13 @@ typedef enum {
     FGEN_ERROR_TYPE = -1 /**< Error type */
 } opt_type_t;
 
-/**< The set of strings matching the opt_type_t structure */
+/** @name Layer name strings
+ * @brief Human-readable token names used in frame description strings.
+ *
+ * Each macro matches the leading token of the corresponding layer in a frame
+ * description string, e.g. @c "Ether(dst=…)/IPv4(dst=…)/UDP(…)/Payload(…)".
+ * @{
+ */
 #define FGEN_ETHER_STR   "Ether"
 #define FGEN_DOT1Q_STR   "Dot1q"
 #define FGEN_DOT1AD_STR  "Dot1ad"
@@ -65,6 +100,7 @@ typedef enum {
 #define FGEN_TSC_STR     "TSC"
 #define FGEN_RAW_STR     "Raw"
 #define FGEN_PAYLOAD_STR "Payload"
+/** @} */
 
 // clang-format off
 #define FGEN_TYPE_STRINGS \
@@ -92,14 +128,34 @@ struct fgen_s;
 struct fopt_s;
 struct frame_s;
 
+/**
+ * @brief Encoder function signature for a single protocol layer.
+ *
+ * @param f    Frame being built.
+ * @param lidx Index into @c fgen_t.opts[] for this layer.
+ * @return     The @c opt_type_t of this layer on success, @c FGEN_ERROR_TYPE on failure.
+ */
 typedef int (*fgen_fn_t)(struct frame_s *f, int lidx);
 
+/**
+ * @brief Entry in the static layer dispatch table.
+ *
+ * @c fgen_tbl[] maps token prefix strings (e.g. @c "Ether(") to the
+ * corresponding encoder function and type identifier.
+ */
 typedef struct ftable_s {
     opt_type_t typ;  /**< Type of layer */
     const char *str; /**< Name of the layer and string for comparing */
     fgen_fn_t fn;    /**< Routine to call for a given layer */
 } ftable_t;
 
+/**
+ * @brief Per-layer parse option recorded during frame encoding.
+ *
+ * One @c fopt_t is filled in for each layer token in the frame description
+ * string.  The array lives in @c fgen_t.opts[] and is reset at the start of
+ * every @c _encode_frame() call — it is scratch state, not persistent metadata.
+ */
 typedef struct fopt_s {
     opt_type_t typ;  /**< Type of layer */
     uint16_t offset; /**< Offset into the buffer for this layer */
@@ -108,6 +164,12 @@ typedef struct fopt_s {
     ftable_t *tbl;   /**< The table containing the layer parsing routine */
 } fopt_t;
 
+/**
+ * @brief Byte offset and length of a single protocol header within a frame.
+ *
+ * Used by @c frame_t to record where each of L2/L3/L4 lives inside the
+ * encoded binary buffer.
+ */
 typedef struct proto_s {
     uint16_t offset; /**< Offset to the protocol header in buffer */
     uint16_t length; /**< Length of the protocol header in buffer */
@@ -115,6 +177,17 @@ typedef struct proto_s {
 
 struct fgen_s;
 
+/**
+ * @brief A single encoded network frame.
+ *
+ * Created by fgen_add_frame() / fgen_load_files() / fgen_load_strings().
+ * Binary frame data is stored in the @c salloc slab owned by the parent
+ * @c fgen_t; @c data_off and @c data_len locate it there.  Use the
+ * @c fbuf_mtod() / @c fbuf_mtod_offset() macros to access the raw bytes.
+ *
+ * When a @c TSC() layer is present, @c tsc_off records the byte offset of the
+ * timestamp slot so callers can inject a hardware timestamp without re-parsing.
+ */
 typedef struct frame_s {
     TAILQ_ENTRY(frame_s) next; /**< Frame list entry */
     char *name;                /**< Name of the frame, this string allocated by strdup() */
@@ -129,6 +202,16 @@ typedef struct frame_s {
     proto_t l4;                /**< Information about L4 header */
 } frame_t;
 
+/**
+ * @brief Frame generator context — the top-level object of the library.
+ *
+ * Owns the @c salloc slab where all binary frame data lives and maintains the
+ * linked list of @c frame_t objects.  The @c opts[], @c layers[], and
+ * @c params[] arrays are scratch space reused on every @c _encode_frame()
+ * call and must not be read after encoding completes.
+ *
+ * Obtain with fgen_create(); release with fgen_destroy().
+ */
 typedef struct fgen_s {
     TAILQ_HEAD(frame_head, frame_s) head; /**< Frame list head */
     uint32_t flags;                       /**< Flags for debugging and parsing the text */
@@ -140,9 +223,10 @@ typedef struct fgen_s {
     char *params[FGEN_MAX_PARAMS];        /**< Parameters for each layer */
 } fgen_t;
 
+/** @brief Flags controlling debug output, passed to fgen_create(). */
 enum {
-    FGEN_VERBOSE   = (1 << 0), /**< Debug flag to enable verbose output */
-    FGEN_DUMP_DATA = (1 << 1), /**< Debug flag to hexdump the data */
+    FGEN_VERBOSE   = (1 << 0), /**< Enable verbose per-layer encode/decode trace */
+    FGEN_DUMP_DATA = (1 << 1), /**< Hex-dump each encoded frame after building it */
 };
 
 /**
@@ -252,7 +336,7 @@ FGEN_API int fgen_add_frame(fgen_t *fg, const char *name, const char *text);
  *
  * @param msg
  *   A header message, can be NULL.
- * @param fpk5
+ * @param fpkt
  *   The frame_t pointer to print.
  */
 FGEN_API void fgen_print_frame(const char *msg, frame_t *fpkt);
@@ -336,14 +420,17 @@ FGEN_API void fgen_print_string(const char *msg, const char *text);
 FGEN_API frame_t *fgen_find_frame(fgen_t *fg, const char *name);
 
 /**
- * Find next frame in the frame
+ * Find the next frame in the frame list.
+ *
+ * Pass @c NULL for @p prev to get the first frame; pass the previously
+ * returned pointer to step through the list sequentially.
  *
  * @param fg
  *   The fgen_t pointer returned from fgen_create().
  * @param prev
- *   Previous frame pointer
+ *   The previous frame_t pointer, or NULL to start from the beginning.
  * @return
- *  The frame_t pointer or NULL if not found.
+ *   The next frame_t pointer, or NULL when the end of the list is reached.
  */
 FGEN_API frame_t *fgen_next_frame(fgen_t *fg, frame_t *prev);
 

@@ -1,5 +1,15 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2023-2024 Intel Corporation
+ * Copyright(c) 2023-2026 Intel Corporation
+ */
+
+/**
+ * @file fgen.c
+ * @brief fgen context lifecycle, frame list management, and file/string loaders.
+ *
+ * Implements fgen_create(), fgen_destroy(), fgen_add_frame(),
+ * fgen_load_files(), fgen_load_strings(), and the frame-list traversal
+ * helpers.  Encoding of the binary frame data is delegated to _encode_frame()
+ * in encode.c.
  */
 
 #include <stdint.h>        // for uint32_t, uint16_t, int32_t, uint8_t
@@ -17,6 +27,18 @@
 
 extern int _encode_frame(frame_t *f);
 
+/**
+ * @brief Allocate and partially initialise a frame_t.
+ *
+ * Duplicates @p name and @p fstr, links the new frame into @p fg's tail queue,
+ * and increments @c fg->nb_frames.  Does NOT call the encoder — the caller is
+ * responsible for invoking _encode_frame() after this returns.
+ *
+ * @param fg    The owning fgen context.
+ * @param name  Frame name (copied via strdup).
+ * @param fstr  Frame description string (copied via strdup).
+ * @return      Pointer to the new frame_t, or NULL on allocation failure.
+ */
 static frame_t *
 frame_alloc(fgen_t *fg, const char *name, const char *fstr)
 {
@@ -46,6 +68,16 @@ frame_alloc(fgen_t *fg, const char *name, const char *fstr)
     return f;
 }
 
+/**
+ * @brief Unlink and free a frame_t.
+ *
+ * Removes @p f from @p fg's tail queue, decrements @c fg->nb_frames, and
+ * releases the name, fstr, and frame_t allocations.  Safe to call with
+ * @p f == NULL.
+ *
+ * @param fg  The owning fgen context.
+ * @param f   Frame to free (may be NULL).
+ */
 static void
 frame_free(fgen_t *fg, frame_t *f)
 {
@@ -58,6 +90,18 @@ frame_free(fgen_t *fg, frame_t *f)
     }
 }
 
+/**
+ * @brief Validate, allocate, and encode a new frame.
+ *
+ * Checks that @p name is unique within @p fg, calls frame_alloc(), and then
+ * calls _encode_frame() to parse the layer string and produce binary frame
+ * data.  Rolls back by calling frame_free() if encoding fails.
+ *
+ * @param fg    The owning fgen context.
+ * @param name  Unique frame name.
+ * @param fstr  Frame description string (e.g. "Ether(…)/IPv4(…)/…").
+ * @return      0 on success, -1 on error.
+ */
 static int
 _add_frame(fgen_t *fg, const char *name, const char *fstr)
 {
@@ -101,7 +145,7 @@ fgen_add_frame(fgen_t *fg, const char *name, const char *fstr)
     if (_add_frame(fg, name, fstr) < 0)
         FGEN_ERR_RET("Failed to parse frame\n");
 
-    if (fg->flags & (FGEN_VERBOSE || FGEN_DUMP_DATA))
+    if (fg->flags & (FGEN_VERBOSE | FGEN_DUMP_DATA))
         fgen_printf("\n");
 
     return 0;
@@ -158,6 +202,23 @@ fgen_find_frame(fgen_t *fg, const char *name)
     return NULL;
 }
 
+/**
+ * @brief Read and join layer lines from a file into a single frame string.
+ *
+ * Starting at the current file position, reads lines until it encounters a
+ * line containing ":=" (the start of the next frame definition) or EOF.
+ * Comment text after "//" is stripped from each line.  Consecutive layer
+ * lines are concatenated with "/" separators; the trailing "/" is removed
+ * before returning.
+ *
+ * The file position is backed up to the start of the ":=" line so that the
+ * caller can detect it as the next frame header.
+ *
+ * @param f    Open file handle positioned just after a ":=" token.
+ * @param str  Output buffer for the assembled frame string.
+ * @param len  Size of @p str in bytes.
+ * @return     Number of bytes written to @p str (0 if nothing was read).
+ */
 static int
 get_frame_string(FILE *f, char *str, int len)
 {
@@ -210,7 +271,18 @@ get_frame_string(FILE *f, char *str, int len)
 }
 
 /**
- * Find the next frame string, return -1 on EOF, 0 not found, 1 Found
+ * @brief Scan a file for the next frame header ("name :=").
+ *
+ * Skips blank lines and comment-only lines.  When a line containing ":=" is
+ * found, copies the name (if present) into @p name and seeks the file
+ * position to the first non-whitespace character of the frame-string body
+ * (i.e. just after ":=") so that get_frame_string() can follow immediately.
+ *
+ * @param f    Open file handle.
+ * @param name Output buffer for the frame name (may remain empty if the line
+ *             is an anonymous ":=" definition).
+ * @param len  Size of @p name in bytes.
+ * @return     1 if a frame header was found, -1 on EOF, 0 otherwise.
  */
 static int
 find_next_frame(FILE *f, char *name, int len)
@@ -339,11 +411,14 @@ fgen_load_strings(fgen_t *fg, char **fstr, int nb_frames)
                 FGEN_ERR_RET("Invalid frame name '%s'\n", fstr[cnt]);
         }
 
-        if (_add_frame(fg, name, s) < 0)
+        if (_add_frame(fg, name, s) < 0) {
+            free(txt);
             FGEN_ERR_RET("Adding a frame failed\n");
+        }
+        free(txt);
+        txt = NULL;
     }
 
-    free(txt);
     return cnt;
 }
 

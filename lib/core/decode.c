@@ -1,5 +1,16 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2023-2024 Intel Corporation
+ * Copyright(c) 2023-2026 Intel Corporation
+ */
+
+/**
+ * @file decode.c
+ * @brief Frame decoder: converts raw packet bytes back into a fgen layer-description string.
+ *
+ * The public entry point is fgen_decode(), which selects the starting protocol
+ * and dispatches through a chain of static _decode_*() functions.  Each
+ * function appends its layer's field values to the output buffer via _append(),
+ * advances the read offset, then calls the next inner decoder.  The final
+ * string can be retrieved with fgen_decode_text().
  */
 
 #include <stdint.h>        // for uint32_t, uint16_t, int32_t, uint8_t
@@ -22,6 +33,18 @@
 
 static int _decode_vlan(decode_t *dc, bool is_dot1ad);
 
+/**
+ * @brief Append a printf-formatted string to the decode output buffer.
+ *
+ * Allocates the buffer on the first call and grows it with realloc() as needed,
+ * up to FGEN_MAX_FSTR_LEN bytes total.  All _decode_*() functions route their
+ * output through this helper.
+ *
+ * @param dc      Active decode context.
+ * @param format  printf-style format string.
+ * @return        0 on success, -1 if the buffer would exceed the maximum size
+ *                or if (re)allocation fails.
+ */
 static __attribute__((__format__(__printf__, 2, 0))) int
 _append(decode_t *dc, const char *format, ...)
 {
@@ -70,6 +93,16 @@ _append(decode_t *dc, const char *format, ...)
     return 0;
 }
 
+/**
+ * @brief Append any unrecognized trailing bytes as a Raw('…') token.
+ *
+ * Reads from the current offset to the end of the packet.  Printable bytes
+ * are emitted as-is; non-printable bytes as @c \\xNN escape sequences.
+ * Does nothing if the offset already equals the data length.
+ *
+ * @param dc  Active decode context.
+ * @return    0 on success, -1 on _append error.
+ */
 static int
 _decode_raw(decode_t *dc)
 {
@@ -91,6 +124,16 @@ _decode_raw(decode_t *dc)
     return 0;
 }
 
+/**
+ * @brief Append a Payload(len=N) token to the output string.
+ *
+ * Calls _decode_raw() first to capture any unrecognized bytes before the
+ * payload sentinel, then appends the total packet length (including the
+ * 4-byte Ethernet CRC).
+ *
+ * @param dc  Active decode context.
+ * @return    0 on success, -1 on _append error.
+ */
 static int
 _decode_payload(decode_t *dc)
 {
@@ -101,6 +144,16 @@ _decode_payload(decode_t *dc)
     return 0;
 }
 
+/**
+ * @brief Decode a TSC timestamp slot, if present, then call _decode_payload().
+ *
+ * Checks whether the bytes at the current offset match the TIMESTAMP_ID magic
+ * marker.  If so, appends a @c TSC(0x…) token and advances the offset past
+ * the @c tsc_t record.  Always terminates by calling _decode_payload().
+ *
+ * @param dc  Active decode context.
+ * @return    Return value of _decode_payload().
+ */
 static int
 _decode_tsc(decode_t *dc)
 {
@@ -118,6 +171,15 @@ _decode_tsc(decode_t *dc)
     return _decode_payload(dc);
 }
 
+/**
+ * @brief Decode a UDP header and chain to _decode_tsc().
+ *
+ * Appends @c UDP(dport=…,sport=…,len=…,cksum=…)/ and advances the offset
+ * past the UDP header, then calls _decode_tsc() to handle any remaining data.
+ *
+ * @param dc  Active decode context.
+ * @return    Return value of _decode_tsc().
+ */
 static int
 _decode_udp(decode_t *dc)
 {
@@ -134,6 +196,15 @@ _decode_udp(decode_t *dc)
     return _decode_tsc(dc);
 }
 
+/**
+ * @brief Decode a TCP header and chain to _decode_tsc().
+ *
+ * Appends @c TCP(sport=…,dport=…,seq=…,ack=…,…)/ and advances the offset
+ * past the TCP header, then calls _decode_tsc() for the remaining data.
+ *
+ * @param dc  Active decode context.
+ * @return    Return value of _decode_tsc().
+ */
 static int
 _decode_tcp(decode_t *dc)
 {
@@ -153,12 +224,21 @@ _decode_tcp(decode_t *dc)
     _append(dc, ",flags=%#x", tcp->tcp_flags);
     _append(dc, ",win=%#x", ntohs(tcp->rx_win));
     _append(dc, ",cksum=%#x", ntohs(tcp->cksum));
-    _append(dc, ",urp=%%x", ntohs(tcp->tcp_urp));
+    _append(dc, ",urp=%#x", ntohs(tcp->tcp_urp));
     _append(dc, ")/");
 
     return _decode_tsc(dc);
 }
 
+/**
+ * @brief Decode an IPv4 header and dispatch to the inner protocol decoder.
+ *
+ * Appends @c IPv4(…)/ with all header fields, then calls _decode_udp(),
+ * _decode_tcp(), or _decode_tsc() depending on @c next_proto_id.
+ *
+ * @param dc  Active decode context.
+ * @return    0 on success, -1 on error.
+ */
 static int
 _decode_ipv4(decode_t *dc)
 {
@@ -174,7 +254,7 @@ _decode_ipv4(decode_t *dc)
     _append(dc, "version_ihl=%#x", ip->version_ihl);
     _append(dc, ",tos=%#x", ip->type_of_service);
     _append(dc, ",len=%d", ntohs(ip->total_length));
-    _append(dc, ",id=%#x", ntohs(ip->total_length));
+    _append(dc, ",id=%#x", ntohs(ip->packet_id));
     _append(dc, ",fragoff=%d", ntohs(ip->fragment_offset));
     _append(dc, ",ttl=%d", ntohs(ip->time_to_live));
     _append(dc, ",cksum=%d", ntohs(ip->hdr_checksum));
@@ -200,6 +280,15 @@ _decode_ipv4(decode_t *dc)
     return _decode_tsc(dc);
 }
 
+/**
+ * @brief Decode an IPv6 header and dispatch to the inner protocol decoder.
+ *
+ * Appends @c IPv6(…)/ with vtc_flow, payload_len, hop_limits, dst, and src,
+ * then calls _decode_udp(), _decode_tcp(), or _decode_tsc() based on @c proto.
+ *
+ * @param dc  Active decode context.
+ * @return    0 on success, -1 on error.
+ */
 static int
 _decode_ipv6(decode_t *dc)
 {
@@ -237,18 +326,31 @@ _decode_ipv6(decode_t *dc)
     return _decode_tsc(dc);
 }
 
+/** @brief Decode a Dot1AD (QinQ outer) VLAN tag. Delegates to _decode_vlan(). */
 static int
 _decode_dot1ad(decode_t *dc)
 {
     return _decode_vlan(dc, true);
 }
 
+/** @brief Decode a Dot1Q VLAN tag. Delegates to _decode_vlan(). */
 static int
 _decode_dot1q(decode_t *dc)
 {
     return _decode_vlan(dc, false);
 }
 
+/**
+ * @brief Decode a VLAN tag (Dot1Q or Dot1AD) and dispatch to the next layer.
+ *
+ * Appends @c Dot1Q(vid=…,prio=…,cfi=…)/ or @c Dot1AD(…)/ and dispatches to
+ * _decode_dot1q(), _decode_dot1ad(), _decode_ipv4(), or _decode_ipv6() based
+ * on the @c eth_proto field of the VLAN header.
+ *
+ * @param dc         Active decode context.
+ * @param is_dot1ad  True when decoding the outer Dot1AD tag.
+ * @return           0 on success, -1 if the inner protocol is unrecognized.
+ */
 static int
 _decode_vlan(decode_t *dc, bool is_dot1ad)
 {
@@ -280,6 +382,15 @@ _decode_vlan(decode_t *dc, bool is_dot1ad)
     return -1;
 }
 
+/**
+ * @brief Decode an Ethernet II header and dispatch to the next-layer decoder.
+ *
+ * Appends @c Ether(dst=…,src=…)/ and dispatches to _decode_dot1q(),
+ * _decode_dot1ad(), _decode_ipv4(), or _decode_ipv6() based on @c ether_type.
+ *
+ * @param dc  Active decode context.
+ * @return    0 on success, -1 if the EtherType is unrecognized.
+ */
 static int
 _decode_ether(decode_t *dc)
 {
@@ -303,11 +414,13 @@ _decode_ether(decode_t *dc)
 
     switch (ntohs(eth->ether_type)) {
     case FGEN_ETHER_TYPE_VLAN:
-        return _decode_dot1ad(dc);
-    case FGEN_ETHER_TYPE_QINQ:
         return _decode_dot1q(dc);
+    case FGEN_ETHER_TYPE_QINQ:
+        return _decode_dot1ad(dc);
     case FGEN_ETHER_TYPE_IPV4:
         return _decode_ipv4(dc);
+    case FGEN_ETHER_TYPE_IPV6:
+        return _decode_ipv6(dc);
     default:
         break;
     }
@@ -405,7 +518,9 @@ fgen_decode_string(const char *text, uint8_t *buffer, int len)
             if (errno == ERANGE)
                 return -1;
             buffer[cnt++] = (uint8_t)v;
-        }
+            text += 2;
+        } else
+            text++;
     }
 
     return cnt;

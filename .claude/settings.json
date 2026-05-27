@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ninja -C build)",
+      "Bash(ninja -C /work/projects/intel/traffic-gen/fgen/builddir)"
+    ]
+  }
+}
