@@ -12,22 +12,29 @@
 
 /**
  * @file
- * FGEN allocator for huge pages
+ * @brief Internal mmap allocator data structures.
  *
- * Allocate memory using MMAP anonyuous memory using hugepages.
+ * Defines the private mmap_data descriptor used by fgen_mmap.c.
+ * Not part of the public API — do not include directly.
  */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * @brief Internal descriptor for a single mmap allocation.
+ *
+ * Tracks all bookkeeping needed to manage and eventually free an
+ * anonymous memory-mapped region.
+ */
 struct mmap_data {
-    uint32_t bufcnt; /**< Number of buffers in the pool */
-    uint32_t bufsz;  /**< Size of each buffer in the pool */
-    size_t sz;       /**< Real size of the memory region  (bufcnt * bufsz) */
-    void *addr;      /**< Address of the memory region */
-    mmap_type_t typ; /**< Type of memory allocated */
-    unsigned align;  /**< Alignment value */
+    uint32_t bufcnt; /**< Number of buffers requested by the caller */
+    uint32_t bufsz;  /**< Size in bytes of each buffer */
+    size_t sz;       /**< Actual mapped size in bytes (page-aligned) */
+    void *addr;      /**< Base virtual address of the mapped region */
+    mmap_type_t typ; /**< Hugepage type actually used for this allocation */
+    unsigned align;  /**< Alignment / page size used for the mapping */
 };
 
 #ifdef __cplusplus

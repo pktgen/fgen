@@ -2,6 +2,14 @@
  * Copyright (c) 2019-2026 Intel Corporation.
  */
 
+/**
+ * @file
+ * @brief Implementation of FGEN TTY setup, teardown, and raw I/O.
+ *
+ * Initialises the terminal into raw mode, tracks window size via SIGWINCH,
+ * and provides low-level read/write helpers used by all output routines.
+ */
+
 // IWYU pragma: no_include <bits/termios-c_lflag.h>
 // IWYU pragma: no_include <bits/termios-tcflow.h>
 // IWYU pragma: no_include <bits/termios-struct.h>
@@ -190,6 +198,12 @@ tty_vfprintf(FILE *f, const char *fmt, va_list ap)
     return (!f) ? -1 : vfprintf(f, fmt, ap);
 }
 
+/**
+ * SIGWINCH signal handler — updates window dimensions in this_tty.
+ *
+ * @param sig
+ *   Signal number; only SIGWINCH is acted upon.
+ */
 static void
 handle_winch(int sig)
 {
@@ -205,6 +219,12 @@ handle_winch(int sig)
     }
 }
 
+/**
+ * Put the input terminal into raw (non-canonical, no-echo) mode.
+ *
+ * Saves the current termios settings in this_tty->oldterm before
+ * switching to raw mode so they can be restored by tty_reset().
+ */
 static void
 tty_raw_input(void)
 {
@@ -222,6 +242,11 @@ tty_raw_input(void)
         this_tty->flags |= TTY_IS_A_TTY;
 }
 
+/**
+ * Restore the terminal to its original settings (undo raw mode).
+ *
+ * Only acts when TTY_IS_A_TTY is set in this_tty->flags.
+ */
 static void
 tty_reset(void)
 {

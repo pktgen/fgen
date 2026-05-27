@@ -18,8 +18,7 @@
 
 /**
  * @file
- *
- * Ethernet Helpers in FGEN
+ * @brief Ethernet helpers and data structures for FGEN.
  */
 
 #ifdef __cplusplus
@@ -39,7 +38,8 @@ extern "C" {
 #define ETH_ALEN 6
 
 /**
- * Ethernet address:
+ * @brief Ethernet MAC address (48-bit / EUI-48).
+ *
  * A universally administered address is uniquely assigned to a device by its
  * manufacturer. The first three octets (in transmission order) contain the
  * Organizationally Unique Identifier (OUI). The following three (MAC-48 and
@@ -58,8 +58,9 @@ struct ether_addr {
 #define ETHER_GROUP_ADDR       0x01 /**< Multicast or broadcast Eth. address. */
 
 /**
- * Ethernet header: Contains the destination address, source address
- * and frame type.
+ * @brief Ethernet II frame header.
+ *
+ * Contains the destination address, source address, and EtherType field.
  */
 struct fgen_ether_hdr {
     struct ether_addr d_addr; /**< Destination address. */
@@ -68,8 +69,9 @@ struct fgen_ether_hdr {
 } __fgen_aligned(2);
 
 /**
- * Ethernet VLAN Header.
- * Contains the 16-bit VLAN Tag Control Identifier and the Ethernet type
+ * @brief Ethernet VLAN header (IEEE 802.1Q).
+ *
+ * Contains the 16-bit VLAN Tag Control Identifier (TCI) and the EtherType
  * of the encapsulated frame.
  */
 struct fgen_vlan_hdr {
@@ -296,7 +298,14 @@ ether_addr_copy(const struct ether_addr *ea_from, struct ether_addr *ea_to)
 #endif
 }
 
-/* Swap two 16 bit values */
+/**
+ * @brief Swap two 16-bit values in place.
+ *
+ * @param t
+ *   Pointer to the first 16-bit value.
+ * @param f
+ *   Pointer to the second 16-bit value.
+ */
 FGEN_API __fgen_always_inline void
 ether_swap(uint16_t *t, uint16_t *f)
 {
@@ -307,7 +316,14 @@ ether_swap(uint16_t *t, uint16_t *f)
     *f = v;
 }
 
-/* Swap two ethernet addresses */
+/**
+ * @brief Swap two Ethernet addresses in place.
+ *
+ * @param t
+ *   Pointer to the first Ethernet address.
+ * @param f
+ *   Pointer to the second Ethernet address.
+ */
 FGEN_API __fgen_always_inline void
 ether_addr_swap(struct ether_addr *t, struct ether_addr *f)
 {
@@ -319,6 +335,7 @@ ether_addr_swap(struct ether_addr *t, struct ether_addr *f)
     ether_swap(d, s);
 }
 
+/** @brief Buffer size required to hold a formatted 48-bit Ethernet address string. */
 #define FGEN_ETHER_ADDR_FMT_SIZE 18
 /**
  * Format 48bits Ethernet address in pattern xx:xx:xx:xx:xx:xx.
@@ -341,6 +358,14 @@ ether_format_addr(char *buf, uint16_t size, const struct ether_addr *eth_addr)
     // clang-format on
 }
 
+/**
+ * @brief Convert a single hex character to its numeric value.
+ *
+ * @param ch
+ *   A character in the range '0'-'9', 'a'-'f', or 'A'-'F'.
+ * @return
+ *   The numeric value (0-15) on success, or -1 if @p ch is not a hex digit.
+ */
 FGEN_API __fgen_always_inline int8_t
 __get_xdigit(char ch)
 {
@@ -353,7 +378,16 @@ __get_xdigit(char ch)
     return -1;
 }
 
-/* Convert 00:11:22:33:44:55 to ethernet address */
+/**
+ * @brief Parse a colon-separated MAC address string (XX:XX:XX:XX:XX:XX).
+ *
+ * @param s0
+ *   Pointer to the input string in "XX:XX:XX:XX:XX:XX" format.
+ * @param ea
+ *   Pointer to an ether_addr structure to receive the parsed address.
+ * @return
+ *   true if the string was fully consumed and valid; false otherwise.
+ */
 FGEN_API __fgen_always_inline bool
 __get_ether_addr6(const char *s0, struct ether_addr *ea)
 {
@@ -381,7 +415,16 @@ __get_ether_addr6(const char *s0, struct ether_addr *ea)
     return *s == '\0';
 }
 
-/* Convert 0011:2233:4455 to ethernet address */
+/**
+ * @brief Parse a colon-separated 16-bit word MAC address string (XXXX:XXXX:XXXX).
+ *
+ * @param s
+ *   Pointer to the input string in "XXXX:XXXX:XXXX" format.
+ * @param ea
+ *   Pointer to an ether_addr structure to receive the parsed address.
+ * @return
+ *   true if the string was fully consumed and valid; false otherwise.
+ */
 FGEN_API __fgen_always_inline bool
 __get_ether_addr3(const char *s, struct ether_addr *ea)
 {
@@ -490,7 +533,18 @@ fgen_ether_aton(const char *a, struct ether_addr *e)
     return e;
 }
 
-/* Convert MAC address to ascii */
+/**
+ * @brief Convert a binary Ethernet MAC address to an ASCII string.
+ *
+ * @param buff
+ *   Pointer to the output buffer.
+ * @param len
+ *   Size of the output buffer in bytes.
+ * @param eaddr
+ *   Pointer to the ether_addr structure to format.
+ * @return
+ *   Pointer to @p buff containing the formatted MAC address string.
+ */
 FGEN_API __fgen_always_inline char *
 inet_mtoa(char *buff, int len, struct ether_addr *eaddr)
 {

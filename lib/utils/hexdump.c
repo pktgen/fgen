@@ -2,6 +2,13 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief Memory hex-dump utility implementation.
+ *
+ * Implements fgen_hexdump() and fgen_memdump() as declared in hexdump.h.
+ */
+
 #include <stdio.h>         // for fprintf, snprintf, fflush, FILE, NULL, stdout
 #include <string.h>        // for strcpy
 
@@ -9,8 +16,21 @@
 #include <fgen_stdio.h>
 #include "hexdump.h"
 
+/** @brief Maximum length of a formatted line in the hexdump output buffer. */
 #define LINE_LEN 128
 
+/**
+ * @brief Dump memory in a traditional offset + hex + ASCII layout.
+ *
+ * @param f
+ *   Destination FILE pointer; if NULL stdout is used.
+ * @param title
+ *   Optional header string printed before the dump; may be NULL.
+ * @param buf
+ *   Pointer to the first byte of the region to dump.
+ * @param len
+ *   Number of bytes to dump.
+ */
 void
 fgen_hexdump(FILE *f, const char *title, const void *buf, unsigned int len)
 {
@@ -50,6 +70,18 @@ fgen_hexdump(FILE *f, const char *title, const void *buf, unsigned int len)
     fflush(f);
 }
 
+/**
+ * @brief Dump memory as a compact colon-separated hex byte sequence.
+ *
+ * @param f
+ *   Destination FILE pointer; if NULL stdout is used.
+ * @param title
+ *   Optional label printed before the bytes; may be NULL.
+ * @param buf
+ *   Pointer to the first byte of the region to dump.
+ * @param len
+ *   Number of bytes to dump.
+ */
 void
 fgen_memdump(FILE *f, const char *title, const void *buf, unsigned int len)
 {

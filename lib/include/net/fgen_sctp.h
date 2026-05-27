@@ -7,8 +7,7 @@
 
 /**
  * @file
- *
- * SCTP-related defines
+ * @brief SCTP (Stream Control Transmission Protocol) header definition.
  */
 
 #ifndef _FGEN_SCTP_H_
@@ -23,7 +22,7 @@ extern "C" {
 #endif
 
 /**
- * SCTP Header
+ * @brief SCTP (Stream Control Transmission Protocol) header.
  */
 struct fgen_sctp_hdr {
     fgen_be16_t src_port; /**< Source port. */

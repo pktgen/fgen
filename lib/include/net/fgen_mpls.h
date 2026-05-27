@@ -7,8 +7,7 @@
 
 /**
  * @file
- *
- * MPLS-related defines
+ * @brief MPLS (Multi-Protocol Label Switching) header definition.
  */
 
 #include <stdint.h>
@@ -19,7 +18,7 @@ extern "C" {
 #endif
 
 /**
- * MPLS header.
+ * @brief MPLS (Multi-Protocol Label Switching) header.
  */
 struct fgen_mpls_hdr {
     uint16_t tag_msb; /**< Label(msb). */

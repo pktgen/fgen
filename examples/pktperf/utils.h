@@ -6,6 +6,12 @@
 
 /* Created 2014 by Keith Wiles @ intel.com */
 
+/**
+ * @file
+ * @brief pktperf utility helpers: string duplication, bracket trimming,
+ *        string parsing, and character-set copying.
+ */
+
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
@@ -14,10 +20,17 @@ extern "C" {
 #endif
 
 /**
- * The function is a wrapper around strdup() and will free the previous string
- * if the pointer is present.
+ * @brief Free @p str if non-NULL, then return a strdup() of @p new.
+ *
+ * Convenience wrapper that replaces an existing heap string in one call.
+ *
+ * @param str
+ *   Existing string to free, or NULL.
+ * @param new
+ *   New string to duplicate, or NULL.
+ * @return
+ *   Newly duplicated string, or NULL if @p new is NULL.
  */
-
 static __inline__ char *
 pg_strdupf(char *str, char *new)
 {
@@ -63,7 +76,34 @@ pg_strtrimset(char *str, const char *set)
     return str;
 }
 
+/**
+ * @brief Split string @p s on @p delim and store pointers in @p entries.
+ *
+ * @param s
+ *   Source string to split (modified in place).
+ * @param delim
+ *   Delimiter string.
+ * @param entries
+ *   Array of char pointers to receive the split tokens.
+ * @param max_entries
+ *   Maximum number of tokens to store.
+ * @return
+ *   Number of tokens stored in @p entries.
+ */
 uint32_t pg_strparse(char *s, const char *delim, char **entries, uint32_t max_entries);
+
+/**
+ * @brief Copy characters from @p f to @p t stopping at the first character in @p str.
+ *
+ * @param t
+ *   Destination buffer.
+ * @param f
+ *   Source string to copy from.
+ * @param str
+ *   Set of stop characters; copying halts when any character in @p str is encountered.
+ * @return
+ *   Pointer to the destination buffer @p t.
+ */
 char *pg_strccpy(char *t, char *f, const char *str);
 
 #ifdef __cplusplus

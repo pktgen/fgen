@@ -3,9 +3,8 @@
  */
 
 /**
- * @file
- *
- * Definitions of version numbers
+ * @file fgen_version.h
+ * @brief Version number macros and the fgen_version() accessor function.
  */
 
 #ifndef _FGEN_VERSION_H_
@@ -21,12 +20,24 @@ extern "C" {
 #endif
 
 /**
- * Macro to compute a version number usable for comparisons
+ * @brief Encode four version components into a single 32-bit integer.
+ *
+ * The resulting value is suitable for compile-time comparisons against
+ * @c FGEN_VERSION.
+ *
+ * @param a  Year component.
+ * @param b  Month component.
+ * @param c  Minor component.
+ * @param d  Release/patch component.
+ * @return   Packed 32-bit version number: (a<<24 | b<<16 | c<<8 | d).
  */
 #define FGEN_VERSION_NUM(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d))
 
 /**
- * All version numbers in one define to compare with FGEN_VERSION_NUM()
+ * @brief Packed 32-bit version number for this build of FGEN.
+ *
+ * Compare against a value produced by @c FGEN_VERSION_NUM() to perform
+ * compile-time version checks.
  */
 // clang-format off
 #define FGEN_VERSION FGEN_VERSION_NUM( \
@@ -37,10 +48,13 @@ extern "C" {
 // clang-format on
 
 /**
- * Function returning version string
+ * @brief Return the FGEN version as a human-readable string.
  *
- * @return
- *     string
+ * The string is built once and cached in a static buffer.  Its format is
+ * @c "FGEN YY.MM.minor" when there is no suffix, or
+ * @c "FGEN YY.MM.minorSUFFIXrelease" when a suffix is defined.
+ *
+ * @return  Pointer to a static NUL-terminated version string.
  */
 static inline const char *
 fgen_version(void)

@@ -10,8 +10,7 @@
 
 /**
  * @file
- *
- * GTP-related defines
+ * @brief GTP (GPRS Tunnelling Protocol) header definitions and related constants.
  */
 
 #include <stdint.h>
@@ -22,10 +21,11 @@ extern "C" {
 #endif
 
 /**
- * Simplified GTP protocol header.
+ * @brief Simplified GTP protocol header.
+ *
  * Contains 8-bit header info, 8-bit message type,
- * 16-bit payload length after mandatory header, 32-bit TEID.
- * No optional fields and next extension header.
+ * 16-bit payload length after mandatory header, and 32-bit TEID.
+ * No optional fields or next extension header are included.
  */
 struct fgen_gtp_hdr {
     uint8_t gtp_hdr_info; /**< GTP header info */
@@ -34,14 +34,18 @@ struct fgen_gtp_hdr {
     uint32_t teid;        /**< Tunnel endpoint ID */
 } __attribute__((__packed__));
 
-/** GTP header length */
+/** @brief Combined UDP + GTP header length in bytes. */
 #define FGEN_ETHER_GTP_HLEN (sizeof(struct fgen_udp_hdr) + sizeof(struct fgen_gtp_hdr))
-/* GTP next protocol type */
-#define FGEN_GTP_TYPE_IPV4 0x40 /**< GTP next protocol type IPv4 */
-#define FGEN_GTP_TYPE_IPV6 0x60 /**< GTP next protocol type IPv6 */
-/* GTP destination lport number */
-#define FGEN_GTPC_UDP_PORT 2123 /**< GTP-C UDP destination port */
-#define FGEN_GTPU_UDP_PORT 2152 /**< GTP-U UDP destination port */
+
+/** @brief GTP next protocol type: IPv4. */
+#define FGEN_GTP_TYPE_IPV4 0x40
+/** @brief GTP next protocol type: IPv6. */
+#define FGEN_GTP_TYPE_IPV6 0x60
+
+/** @brief GTP-C (control plane) UDP destination port. */
+#define FGEN_GTPC_UDP_PORT 2123
+/** @brief GTP-U (user plane) UDP destination port. */
+#define FGEN_GTPU_UDP_PORT 2152
 
 #ifdef __cplusplus
 }

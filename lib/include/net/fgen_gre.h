@@ -7,6 +7,7 @@
 
 /**
  * @file
+ * @brief GRE (Generic Routing Encapsulation) header definition.
  */
 
 #include <stdint.h>
@@ -17,7 +18,7 @@ extern "C" {
 #endif
 
 /**
- * GRE Header
+ * @brief GRE (Generic Routing Encapsulation) header.
  */
 __extension__ struct fgen_gre_hdr {
 #if BYTE_ORDER == LITTLE_ENDIAN

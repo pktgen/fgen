@@ -7,7 +7,11 @@
 
 /**
  * @file
- * API for netdev modification like setting promiscuous mode, link up/down, etc.
+ * @brief API for netdev modification: promiscuous mode, link state, and more.
+ *
+ * Declares functions to query and configure Linux network interfaces,
+ * including promiscuous mode, link up/down, MAC address retrieval,
+ * ethtool offload flags, and channel/ring-parameter management.
  */
 
 #include <stdint.h>            // for uint32_t, uint16_t
@@ -58,11 +62,11 @@ __extension__ struct netdev_link {
 #define FGEN_ETH_SPEED_NUM_UNKNOWN UINT32_MAX /**< Unknown */
 
 /**
- * A structure used to retrieve netdev offload information.
+ * @brief A structure used to retrieve netdev checksum offload information.
  */
 __extension__ struct offloads {
-    uint32_t tx_checksum_offload;
-    uint32_t rx_checksum_offload;
+    uint32_t tx_checksum_offload; /**< Non-zero if TX checksum offload is enabled. */
+    uint32_t rx_checksum_offload; /**< Non-zero if RX checksum offload is enabled. */
 };
 
 /**

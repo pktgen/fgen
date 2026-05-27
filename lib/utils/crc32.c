@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief CRC-32 and CRC-32C software implementations.
+ *
+ * Contains the Gary S. Brown CRC-32 feedback table, a single-table
+ * CRC-32C routine, and a slice-by-8 CRC-32C routine.  All original
+ * copyright and licence notices are preserved exactly.
+ */
+
 /*-
  *  COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or
  *  code or tables extracted from it, as desired without restriction.
@@ -157,6 +166,18 @@ static const uint32_t crc32Table[256] = {
     0xC69F7B69L, 0xD5CF889DL, 0x27A40B9EL, 0x79B737BAL, 0x8BDCB4B9L, 0x988C474DL, 0x6AE7C44EL,
     0xBE2DA0A5L, 0x4C4623A6L, 0x5F16D052L, 0xAD7D5351L};
 
+/**
+ * @brief Compute CRC-32C byte-at-a-time using a single 256-entry table.
+ *
+ * @param crc
+ *   Running CRC value.
+ * @param buf
+ *   Pointer to the input data.
+ * @param size
+ *   Number of bytes to process.
+ * @return
+ *   Updated CRC-32C value.
+ */
 static uint32_t
 singletable_crc32c(uint32_t crc, const void *buf, size_t size)
 {
@@ -595,6 +616,20 @@ static const uint32_t sctp_crc_tableil8_o88[256] = {
  * End of the CRC lookup table crc_tableil8_o88
  */
 
+/**
+ * @brief Slice-by-8 CRC-32C implementation for 64-bit word processing.
+ *
+ * @param crc
+ *   Initial CRC value.
+ * @param p_buf
+ *   Pointer to the input buffer.
+ * @param length
+ *   Total number of bytes to process.
+ * @param init_bytes
+ *   Number of leading bytes to process byte-at-a-time before the main loop.
+ * @return
+ *   Updated CRC-32C value after processing @p length bytes.
+ */
 static uint32_t
 crc32c_sb8_64_bit(uint32_t crc, const unsigned char *p_buf, uint32_t length, uint32_t init_bytes)
 {
@@ -633,6 +668,18 @@ crc32c_sb8_64_bit(uint32_t crc, const unsigned char *p_buf, uint32_t length, uin
     return crc;
 }
 
+/**
+ * @brief Dispatch to crc32c_sb8_64_bit() with correct alignment pre-processing.
+ *
+ * @param crc32c
+ *   Initial CRC value.
+ * @param buffer
+ *   Pointer to the input buffer.
+ * @param length
+ *   Number of bytes to process.
+ * @return
+ *   CRC-32C of the buffer, or @p crc32c unchanged if @p length is 0.
+ */
 static uint32_t
 multitable_crc32c(uint32_t crc32c, const unsigned char *buffer, unsigned int length)
 {
@@ -646,6 +693,21 @@ multitable_crc32c(uint32_t crc32c, const unsigned char *buffer, unsigned int len
     return (crc32c_sb8_64_bit(crc32c, buffer, length, to_even_word));
 }
 
+/**
+ * @brief Compute CRC-32C, selecting the best available algorithm.
+ *
+ * Uses SSE 4.2 when available, the single-table routine for inputs shorter
+ * than 4 bytes, and the slice-by-8 routine otherwise.
+ *
+ * @param crc32c
+ *   Initial CRC value (use 0 to start a new computation).
+ * @param buffer
+ *   Pointer to the data buffer.
+ * @param length
+ *   Number of bytes to process.
+ * @return
+ *   CRC-32C checksum of the buffer.
+ */
 uint32_t
 calculate_crc32c(uint32_t crc32c, const unsigned char *buffer, unsigned int length)
 {

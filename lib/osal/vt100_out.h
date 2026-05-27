@@ -7,7 +7,14 @@
 
 /**
  * @file
- * FGEN cursor and color support for VT100 using ANSI color escape codes.
+ * @brief VT100/ANSI cursor control, color output, and RGB color name tables.
+ *
+ * Provides:
+ *  - Escape-sequence string macros for cursor movement and screen control.
+ *  - Inline helper functions that emit VT100 sequences via tty_printf().
+ *  - Color/attribute enumerations and RGB lookup tables.
+ *  - A color-tag parser (vt_color_parse()) that converts [fg:bg:attr] tags
+ *    embedded in format strings into the corresponding ANSI escape codes.
  */
 
 // IWYU pragma  no_include <bits/termios-struct.h>
@@ -28,13 +35,18 @@
 extern "C" {
 #endif
 
+/** @brief Default color name string used when no color is specified. */
 #define VT_DEFAULT_NAME "default"
 
-/** A single byte to hold lport of a Red/Green/Blue color value */
+/** @brief A single byte holding one component of a Red/Green/Blue color value. */
 typedef uint8_t vt_rgb_t;
 
-/** ANSI color codes zero based, need to add 30 or 40 for foreground or
-   background color code */
+/**
+ * @brief ANSI color codes, zero-based.
+ *
+ * Add 30 for a foreground color code or 40 for a background color code
+ * when constructing ANSI escape sequences.
+ */
 typedef enum {
     VT_BLACK          = 0,
     VT_RED            = 1,
@@ -55,8 +67,11 @@ typedef enum {
     VT_UNKNOWN_COLOR  = 99
 } vt_color_e;
 
-/* Order of the following color enums is important and must be the
- * same order as the rgb color name strings and codes below.
+/**
+ * @brief Extended 256-color and named-color identifiers.
+ *
+ * The order of these enumerators is significant: they must match the
+ * entries in the RGB_COLOR_CODES and RGB_COLOR_NAMES tables below.
  */
 // clang-format off
 enum {
@@ -443,12 +458,18 @@ enum {
 };
 // clang-format on
 
-#define COLOR_DEFAULT 0xc0dedead /**< Magic number to detect default color */
+/** @brief Magic sentinel value indicating that no specific color has been selected. */
+#define COLOR_DEFAULT 0xc0dedead
 
-/* ColorValues constants to their RGB values. */
+/**
+ * @brief Maps a color identifier to its 24-bit RGB value.
+ *
+ * Used internally by the RGB_COLOR_CODES table to convert color enum
+ * values into the RGB bytes required for ANSI 256-color escape sequences.
+ */
 typedef struct {
-    int color_id;
-    unsigned rgb_color;
+    int color_id;          /**< Color identifier from the color enum. */
+    unsigned rgb_color;    /**< 24-bit RGB value (0xRRGGBB), or COLOR_DEFAULT. */
 } vt_rgb_code_t;
 
 /* Copyright 2015 The TCell Authors
@@ -856,9 +877,15 @@ typedef struct {
 }
 // clang-format on
 
+/**
+ * @brief Maps a human-readable color name string to a color identifier.
+ *
+ * Used internally by the RGB_COLOR_NAMES table to resolve color names
+ * found inside [fg:bg:attr] color tags to their numeric color_id.
+ */
 typedef struct {
-    const char *name;
-    int color_id;
+    const char *name;   /**< Lowercase color name string (e.g. "red"). */
+    int color_id;       /**< Corresponding color identifier from the color enum. */
 } vt_rgb_name_t;
 
 // clang-format off
@@ -1016,7 +1043,12 @@ typedef struct {
 }
 // clang-format on
 
-/** ANSI color codes zero based for attributes per color */
+/**
+ * @brief ANSI SGR (Select Graphic Rendition) attribute codes.
+ *
+ * These values are used as the first parameter in an ANSI escape sequence
+ * to set text attributes such as bold, italic, underline, and blink.
+ */
 typedef enum {
     VT_OFF             = 0,
     VT_BOLD            = 1,
@@ -1044,9 +1076,15 @@ typedef enum {
     VT_UNKNOWN_ATTR  = 99
 } vt_attr_e;
 
+/**
+ * @brief Maps an attribute name string to a vt_attr_e value.
+ *
+ * Used internally by the VT_ATTRS table to resolve attribute names
+ * found in [fg:bg:attr] color tags.
+ */
 struct vt_attrs {
-    const char *name;
-    vt_attr_e attr;
+    const char *name;   /**< Lowercase attribute name string (e.g. "bold"). */
+    vt_attr_e attr;     /**< Corresponding SGR attribute code. */
 };
 
 // clang-format off
@@ -1067,9 +1105,28 @@ struct vt_attrs {
 }
 // clang-format on
 
+/** @brief Alias for VT_SLOW_BLINK provided for backward compatibility. */
 #define VT_BLINK VT_SLOW_BLINK
 
+/**
+ * @defgroup vt100_escape_macros VT100 Escape Sequence String Macros
+ * @{
+ *
+ * @brief Raw VT100/ANSI escape sequence string constants.
+ *
+ * These macros expand to string literals containing ANSI/VT100 escape
+ * sequences.  They can be concatenated into format strings or passed
+ * directly to tty_printf() / tty_write().
+ */
+
+/** @brief ASCII escape character used to start all VT100 sequences. */
 #define ESC "\033"
+
+/**
+ * @defgroup vt100_cursor_macros Cursor Control Escape Sequences
+ * @{
+ * @brief Macros for moving, hiding, saving, and restoring the cursor.
+ */
 
 /* cursor codes */
 #define vt100_cursor_off        ESC "[?25l"
@@ -1105,6 +1162,19 @@ struct vt_attrs {
 #define vt100_cursor_pos        ESC "[6n"
 #define vt100_clr_eol           ESC "[K"
 #define vt100_clr_eos           ESC "[J"
+
+/** @} */ /* end of vt100_cursor_macros */
+/** @} */ /* end of vt100_escape_macros */
+
+/**
+ * @defgroup vt100_inline_funcs VT100 Inline Helper Functions
+ * @{
+ * @brief Inline functions that emit VT100 sequences via tty_printf().
+ *
+ * These wrappers around tty_printf() provide a type-safe, named interface
+ * to the most common VT100 operations.  The _s() helper macro is used
+ * internally to generate concise one-liner definitions.
+ */
 
 // clang-format off
 #define _s(_x, _y)  static __inline__ void _x { _y; }
@@ -1321,8 +1391,20 @@ vt_col_repeat(int16_t r, int16_t c, const char *str, int cnt)
     }
 }
 
+/** @} */ /* end of vt100_inline_funcs */
+
 /**
- * Set the foreground color + attribute at the current cursor position
+ * @defgroup vt100_color_funcs VT100 Color Output Functions
+ * @{
+ * @brief Inline functions that emit ANSI color and attribute escape sequences.
+ *
+ * These functions write color/attribute SGR sequences to the tty directly
+ * (vt_fgcolor, vt_bgcolor, ...) or into a caller-supplied string buffer
+ * (vt_fgcolor_str, vt_bgcolor_str, ...) for later output.
+ */
+
+/**
+ * Set the foreground color + attribute at the current cursor position.
  *
  * @param color
  *   The color identifier for the foreground color
@@ -1539,15 +1621,21 @@ vt_rgb_str(char *str, int len, uint8_t fg_bg, vt_rgb_t r, vt_rgb_t g, vt_rgb_t b
     return snprintf(str, len, ESC "[%d:2::%d:%d:%dm", fg_bg, r, g, b);
 }
 
+/** @} */ /* end of vt100_color_funcs */
+
 /**
- * Convert the buffer with color tuples into vt100 color codes.
+ * @brief Convert color-tag tuples embedded in a buffer to VT100 escape codes.
+ *
+ * Scans @p buff for [fg:bg:attr] color tags and replaces each tag in-place
+ * with the corresponding ANSI RGB escape sequences.  The buffer must be
+ * large enough to hold the expanded output.
  *
  * @param buff
- *   The buffer to parse for color tuples.
+ *   The buffer to parse for color tuples; modified in-place.
  * @param len
- *   The max length of the buffer, must be large enough to hold the output string.
+ *   The maximum length of the @p buff array.
  * @return
- *   The number of bytes in buff with the vt100 color codes.
+ *   The number of bytes in @p buff after substitution, or -1 on error.
  */
 FGEN_API int vt_color_parse(char *buff, int len);
 

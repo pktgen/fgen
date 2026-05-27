@@ -2,6 +2,15 @@
  * Copyright (c) 2019-2026 Intel Corporation.
  */
 
+/**
+ * @file
+ * @brief Implementation of VT100 color-tag parsing for FGEN formatted output.
+ *
+ * Provides vt_color_parse() and its internal helpers that scan a character
+ * buffer for [fg:bg:attr] color tags and replace them with the appropriate
+ * ANSI RGB SGR escape sequences.
+ */
+
 #include <stdio.h>              // for NULL
 #include <string.h>             // for strlen, memset, strcpy, strncmp
 #include <fgen_common.h>         // for FGEN_PTR_CAST, fgen_countof
@@ -24,6 +33,15 @@ static struct vt_attrs _attrs[] = VT_ATTRS;
 static vt_rgb_code_t _rgb_codes[] = RGB_COLOR_CODES;
 static vt_rgb_name_t _rgb_names[] = RGB_COLOR_NAMES;
 
+/**
+ * Look up a color name string in the RGB name table.
+ *
+ * @param color
+ *   Lowercase color name to search for (e.g., "red", "darkblue").
+ * @return
+ *   Pointer to the matching vt_rgb_code_t entry, or the default (index 0)
+ *   entry if the name is not found.
+ */
 static vt_rgb_code_t *
 match_rgb_color(char *color)
 {
@@ -36,6 +54,15 @@ match_rgb_color(char *color)
     return &_rgb_codes[0]; /* return default codes */
 }
 
+/**
+ * Look up an attribute name string in the VT attribute table.
+ *
+ * @param attr
+ *   Lowercase attribute name to search for (e.g., "bold", "italic").
+ * @return
+ *   Pointer to the matching vt_attrs entry, or the default (index 0) entry
+ *   if the name is not found.
+ */
 static struct vt_attrs *
 match_attr(char *attr)
 {
@@ -48,6 +75,26 @@ match_attr(char *attr)
     return &_attrs[0]; /* return default codes */
 }
 
+/**
+ * Translate a single [fg:bg:attr] color tag into ANSI escape bytes.
+ *
+ * Parses the color tuple between @p p and @p e, resolves the foreground
+ * color, background color, and text attribute, then writes the corresponding
+ * ANSI SGR escape sequences into the buffer pointed to by @p *cb.
+ *
+ * @param p
+ *   Pointer to the opening '[' of the color tag in the source buffer.
+ * @param e
+ *   Pointer to the character just after the closing ']' of the color tag.
+ * @param cb
+ *   In/out pointer to the current write position in the destination buffer.
+ *   Advanced by the number of bytes written.
+ * @param len
+ *   Remaining space in the destination buffer.
+ * @return
+ *   Number of bytes written on success, -1 if color output is disabled or
+ *   the tag is empty.
+ */
 static int
 color_begin(char *p, char *e, char **cb, int len)
 {

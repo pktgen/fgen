@@ -2,6 +2,12 @@
  * Copyright(c) 2023-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief pktperf utility functions: TX rate calculation and packet construction
+ *        for IPv4/UDP and IPv4/TCP test frames.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,18 +27,18 @@
 
 #include <pktperf.h>
 
+/** @brief Default TCP receive window size in bytes used for constructed TCP packets. */
 enum { DEFAULT_WND_SIZE = 8192 };
 
 /**
+ * @brief Calculate the TX cycle interval and maximum PPS for @p port.
  *
- * packet_rate - Calculate the transmit rate.
+ * Uses the port link speed and the configured TX rate percentage to compute
+ * the number of TSC cycles that must elapse between consecutive TX bursts.
+ * Updates port->tx_cycles and port->pps in place.
  *
- * DESCRIPTION
- * Calculate the number of cycles to wait between sending bursts of traffic.
- *
- * RETURNS: N/A
- *
- * SEE ALSO:
+ * @param port
+ *   Pointer to the port whose rate fields (tx_cycles, pps) are updated.
  */
 void
 packet_rate(l2p_port_t *port)
@@ -60,6 +66,14 @@ packet_rate(l2p_port_t *port)
               link_speed / Billion, wire_size, pps, port->tx_cycles);
 }
 
+/**
+ * @brief Return a pseudo-random non-negative integer in [0, range).
+ *
+ * @param range
+ *   Exclusive upper bound for the returned value.
+ * @return
+ *   A pseudo-random value in the range [0, @p range).
+ */
 static __inline__ long
 get_rand(long range)
 {

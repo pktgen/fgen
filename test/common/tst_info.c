@@ -2,6 +2,12 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief Implementation of test lifecycle helpers: tst_start(), tst_end(),
+ *        tst_summary(), and the coloured log functions tst_ok/tst_error/tst_info/tst_skip.
+ */
+
 #include <stdio.h>             // for fflush, vprintf, stdout
 #include <stdlib.h>            // for free, abort, calloc, srand
 #include <stdarg.h>            // for va_end, va_list, va_start
@@ -13,10 +19,13 @@
 #include <fgen_stdio.h>
 #include "tst_info.h"
 
+/**
+ * @brief Atomic counters tracking aggregate pass/fail/skip totals across all tests.
+ */
 struct tst_stat {
-    atomic_uint fail;
-    atomic_uint pass;
-    atomic_uint skip;
+    atomic_uint fail; /**< Total number of failed tests. */
+    atomic_uint pass; /**< Total number of passed tests. */
+    atomic_uint skip; /**< Total number of skipped tests. */
 };
 
 /* Global test statistics updated by tst_end(). */

@@ -2,6 +2,14 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief Implementation of lcore, NUMA socket, and TSC timer queries.
+ *
+ * Reads CPU topology from /sys and /proc pseudo-filesystems to provide
+ * lcore-to-socket mappings and measures the TSC counter frequency.
+ */
+
 #include <unistd.h>            // for access, gettid, sysconf, F_OK, _SC_NPROCESS...
 #include <limits.h>            // for PATH_MAX
 #include <string.h>            // for memset
@@ -85,6 +93,19 @@ fgen_socket_id_self(void)
     return fgen_socket_id(FGEN_LCORE_INVALID);
 }
 
+/**
+ * Parse an integer field from /proc/<tid>/stat.
+ *
+ * @param thread_idx
+ *   Thread ID to read from, or -1 to use the calling thread.
+ * @param idx
+ *   Zero-based field index within the stat file (fields 1 and 2 are strings
+ *   and are rejected).
+ * @param id
+ *   Output pointer where the parsed integer value is stored.
+ * @return
+ *   0 on success, -1 on error.
+ */
 static int
 parse_procfs_stat_value(int thread_idx, int idx, int *id)
 {
@@ -158,7 +179,16 @@ fgen_lcore_id_by_thread(int thread_idx)
     return lcore_id;
 }
 
-/* parse a sysfs (or other) file containing one integer value */
+/**
+ * Parse a sysfs (or other procfs) file containing a single integer value.
+ *
+ * @param filename
+ *   Path to the sysfs file to read.
+ * @param val
+ *   Output pointer where the parsed unsigned long value is stored.
+ * @return
+ *   0 on success, -1 on error.
+ */
 static int
 parse_sysfs_value(const char *filename, unsigned long *val)
 {
@@ -237,6 +267,12 @@ fgen_max_lcores(void)
     return nb_lcores;
 }
 
+/**
+ * Measure the TSC counter frequency by timing a 100 ms sleep.
+ *
+ * @return
+ *   Measured TSC frequency in Hz, or 0 if the monotonic clock is unavailable.
+ */
 static uint64_t
 get_tsc_freq(void)
 {

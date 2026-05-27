@@ -7,9 +7,10 @@
 
 /**
  * @file
- * FGEN allocator for huge pages
+ * @brief FGEN allocator for huge pages.
  *
- * Allocate memory using MMAP anonymous memory using hugepages.
+ * Public API for allocating and freeing anonymous memory-mapped regions
+ * backed by 4 KB, 2 MB, or 1 GB huge pages.
  */
 
 #include <stddef.h>        // for size_t
@@ -22,19 +23,24 @@ extern "C" {
 #endif
 
 /**
- * Set of enums to help define HUGEPAGE sizes
+ * @brief Enumeration of supported huge-page sizes.
+ *
+ * Passed to mmap_alloc() to request a specific backing page size.
+ * If the requested size is unavailable the allocator falls back to
+ * the next smaller size automatically.
  */
 typedef enum {
-    MMAP_HUGEPAGE_4KB, /**< 4KB pages or default system page size */
-    MMAP_HUGEPAGE_2MB, /**< 2MB page size */
-    MMAP_HUGEPAGE_1GB, /**< 1GB page size if supported */
-    MMAP_HUGEPAGE_CNT  /**< Number of different page sizes supported */
+    MMAP_HUGEPAGE_4KB, /**< 4 KB pages (default system page size) */
+    MMAP_HUGEPAGE_2MB, /**< 2 MB huge page size */
+    MMAP_HUGEPAGE_1GB, /**< 1 GB huge page size (if supported by the kernel) */
+    MMAP_HUGEPAGE_CNT  /**< Sentinel — number of page-size variants */
 } mmap_type_t;
 
+/** @brief Default hugepage type used when none is explicitly specified. */
 #define MMAP_HUGEPAGE_DEFAULT MMAP_HUGEPAGE_4KB
 
 /**
- * A set of stats for mmap allocation/free and other stats
+ * @brief Per-page-size allocation counters.
  */
 typedef struct {
     uint64_t page_sz;       /**< Page size to allocate in bytes */
@@ -45,14 +51,14 @@ typedef struct {
 } mmap_sizes_t;
 
 /**
- * Stats per HUGEPAGE type
+ * @brief Aggregate mmap statistics, one entry per hugepage type.
  */
 typedef struct {
     uint8_t inited;                        /**< Value to detect if stats have been allocated */
     mmap_sizes_t sizes[MMAP_HUGEPAGE_CNT]; /**< Stats for each page size */
 } mmap_stats_t;
 
-typedef void mmap_t; /**< Opaque pointer to internal mmap data */
+typedef void mmap_t; /**< @brief Opaque handle to an mmap allocation region */
 
 /**
  * Allocate memory on the correct socket and use hugepages if set.

@@ -2,6 +2,16 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief Implementation of netdev control operations via ethtool and ioctl.
+ *
+ * Uses AF_INET/SOCK_DGRAM sockets together with SIOCGIFFLAGS, SIOCSIFFLAGS,
+ * and SIOCETHTOOL ioctl calls to get and set link state, promiscuous mode,
+ * MAC address, offload capabilities, and queue/ring parameters for Linux
+ * network interfaces.
+ */
+
 // IWYU pragma: no_include <asm/int-ll64.h>
 
 #include <unistd.h>            // for close
@@ -194,6 +204,18 @@ err:
     return -errno;
 }
 
+/**
+ * Query a single ethtool offload flag from a network interface.
+ *
+ * @param ifname
+ *   The network interface name.
+ * @param cmd
+ *   The ethtool command code (e.g., ETHTOOL_GTXCSUM or ETHTOOL_GRXCSUM).
+ * @param value
+ *   Output pointer where the queried flag value is stored.
+ * @return
+ *   0 on success, or a negative errno value on failure.
+ */
 static int
 get_device_offloads(const char *ifname, int cmd, uint32_t *value)
 {
@@ -238,6 +260,18 @@ netdev_get_offloads(const char *ifname, struct offloads *off)
     return ret;
 }
 
+/**
+ * Count RX and TX queue directories under /sys/class/net/<if_name>/queues/.
+ *
+ * Used as a fallback when the ETHTOOL_GCHANNELS ioctl is not supported.
+ *
+ * @param if_name
+ *   The network interface name.
+ * @param rxq
+ *   Output pointer for the number of RX queues found.
+ * @param txq
+ *   Output pointer for the number of TX queues found.
+ */
 static void
 netdev_get_channels_from_sysfs(const char *if_name, uint32_t *rxq, uint32_t *txq)
 {

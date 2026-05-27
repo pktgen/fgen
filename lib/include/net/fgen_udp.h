@@ -10,8 +10,7 @@
 
 /**
  * @file
- *
- * UDP-related defines
+ * @brief UDP (User Datagram Protocol) header definition.
  */
 
 #include <stdint.h>
@@ -23,7 +22,7 @@ extern "C" {
 #endif
 
 /**
- * UDP Header
+ * @brief UDP (User Datagram Protocol) header.
  */
 struct fgen_udp_hdr {
     fgen_be16_t src_port;    /**< UDP source port. */

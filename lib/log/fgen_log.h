@@ -7,10 +7,11 @@
 
 /**
  * @file
+ * @brief FGEN Logs API
  *
- * FGEN Logs API
- *
- * This file provides a log API to FGEN applications.
+ * This file provides the logging API to FGEN applications, including
+ * log-level control, formatted output macros, assertion helpers, and
+ * panic / exit utilities.
  */
 
 #include <stdio.h>             // for NULL
@@ -22,6 +23,13 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Iterator macro over all FGEN log levels.
+ *
+ * Expands to one call of the user-supplied macro _(num, UPPER, lower)
+ * for every defined log level.  Levels start at 1 to avoid compiler
+ * warnings when used as a condition.
+ */
 #define foreach_fgen_log_level \
     _(1, EMERG, emerg)         \
     _(2, ALERT, alert)         \
@@ -33,21 +41,22 @@ extern "C" {
     _(8, DEBUG, debug)         \
     _(9, LAST, last)
 
-/* Can't use 0, as it gives compiler warnings */
-/*
- * The log levels are defined as follows
- *  FGEN_LOG_EMERG   System is unusable.
- *  FGEN_LOG_ALERT   Action must be taken immediately.
- *  FGEN_LOG_CRIT    Critical conditions.
- *  FGEN_LOG_ERR     Error conditions.
- *  FGEN_LOG_WARNING Warning conditions.
- *  FGEN_LOG_NOTICE  Normal but significant condition.
- *  FGEN_LOG_INFO    Informational.
- *  FGEN_LOG_DEBUG   Debug-level messages.
- *  FGEN_LOG_LAST
+/**
+ * @brief FGEN log level numeric constants.
+ *
+ * Can't use 0, as it gives compiler warnings.
+ *  - FGEN_LOG_EMERG   System is unusable.
+ *  - FGEN_LOG_ALERT   Action must be taken immediately.
+ *  - FGEN_LOG_CRIT    Critical conditions.
+ *  - FGEN_LOG_ERR     Error conditions.
+ *  - FGEN_LOG_WARNING Warning conditions.
+ *  - FGEN_LOG_NOTICE  Normal but significant condition.
+ *  - FGEN_LOG_INFO    Informational.
+ *  - FGEN_LOG_DEBUG   Debug-level messages.
+ *  - FGEN_LOG_LAST    Sentinel — not a real level.
  */
 enum {
-#define _(n, uc, lc) FGEN_LOG_##uc = n,
+#define _(n, uc, lc) FGEN_LOG_##uc = n, /**< Log level: uc */
     foreach_fgen_log_level
 #undef _
 };
@@ -195,16 +204,19 @@ FGEN_API int fgen_vlog(uint32_t level, const char *func, int line, const char *f
 #define FGEN_PRINT(f, args...) fgen_print(f, ##args)
 
 /**
- * Macros for the normal cases with FGEN_LOG() levels
+ * @brief Convenience wrappers that fix the log level for FGEN_LOG().
+ *
+ * Each macro accepts the same variadic printf-style arguments as
+ * FGEN_LOG() and forwards them with the appropriate level pre-set.
  */
-#define FGEN_EMERG(...)  FGEN_LOG(EMERG, __VA_ARGS__)
-#define FGEN_ALERT(...)  FGEN_LOG(ALERT, __VA_ARGS__)
-#define FGEN_CRIT(...)   FGEN_LOG(CRIT, __VA_ARGS__)
-#define FGEN_ERR(...)    FGEN_LOG(ERR, __VA_ARGS__)
-#define FGEN_WARN(...)   FGEN_LOG(WARNING, __VA_ARGS__)
-#define FGEN_NOTICE(...) FGEN_LOG(NOTICE, __VA_ARGS__)
-#define FGEN_INFO(...)   FGEN_LOG(INFO, __VA_ARGS__)
-#define FGEN_DEBUG(...)  FGEN_LOG(DEBUG, __VA_ARGS__)
+#define FGEN_EMERG(...)  FGEN_LOG(EMERG, __VA_ARGS__)   /**< Log at EMERG level */
+#define FGEN_ALERT(...)  FGEN_LOG(ALERT, __VA_ARGS__)   /**< Log at ALERT level */
+#define FGEN_CRIT(...)   FGEN_LOG(CRIT, __VA_ARGS__)    /**< Log at CRIT level */
+#define FGEN_ERR(...)    FGEN_LOG(ERR, __VA_ARGS__)     /**< Log at ERR level */
+#define FGEN_WARN(...)   FGEN_LOG(WARNING, __VA_ARGS__) /**< Log at WARNING level */
+#define FGEN_NOTICE(...) FGEN_LOG(NOTICE, __VA_ARGS__)  /**< Log at NOTICE level */
+#define FGEN_INFO(...)   FGEN_LOG(INFO, __VA_ARGS__)    /**< Log at INFO level */
+#define FGEN_DEBUG(...)  FGEN_LOG(DEBUG, __VA_ARGS__)   /**< Log at DEBUG level */
 
 /**
  * Generate an Error log message and return value

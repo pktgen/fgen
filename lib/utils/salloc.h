@@ -7,14 +7,12 @@
 
 /**
  * @file
+ * @brief Simple bump-pointer allocator (salloc) API.
  *
- * Simple API to allocate from a block of memory. This API does not provide any
- * protection against memory corruption or memory leaks. The API does not
- * provide any methods to free memory allocated by this API.
- *
- * The API allocates memory from a block of memory and returns the offset of the
- * memory allocated from the block. The memory block can dynamically be resized as more
- * memory is needed, which means the memory block address can be changed.
+ * Allocates from a dynamically-grown memory block and returns byte offsets
+ * rather than raw pointers.  There is no per-allocation free; the entire
+ * block is released with salloc_destroy().  The block address may change
+ * after any salloc() call.
  */
 
 #include <stdio.h>
@@ -25,14 +23,21 @@
 extern "C" {
 #endif
 
+/** @brief Default initial block size when salloc_create() is called with size 0. */
 #define DEFAULT_SALLOC_BLOCK_SIZE 1024
 
-typedef uint64_t offset_t; /*< Offset into the salloc memory block */
+typedef uint64_t offset_t; /**< @brief Byte offset into a salloc memory block */
 
+/**
+ * @brief Bump-pointer allocator state.
+ *
+ * Tracks the backing memory block, its total capacity, and how many bytes
+ * have been consumed so far.
+ */
 typedef struct salloc_s {
-    void *ptr; /**< Pointer to the memory block for allocations */
-    uint64_t size; /**< Current total size of the memory block */
-    uint64_t used; /**< Amount of space currently used in memory block */
+    void *ptr;      /**< Pointer to the backing memory block */
+    uint64_t size;  /**< Total allocated size of the backing block in bytes */
+    uint64_t used;  /**< Number of bytes consumed so far */
 } salloc_t;
 
 /**

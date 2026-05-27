@@ -2,6 +2,12 @@
  * Copyright(c) 2023-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief pktperf Ethernet port initialisation: queue setup, MTU configuration,
+ *        promiscuous mode, and port start.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,6 +69,17 @@ static struct rte_eth_conf port_conf = {
  * Depends on the original NIC driver (e.g., ixgbe NICs expect the pseudo-header)
  * See Table 1.133: https://doc.dpdk.org/guides/nics/overview.html
  */
+/**
+ * @brief Determine whether checksum offload requires a pseudo-header for the given driver.
+ *
+ * Some NICs (e.g. ixgbe) expect the IP pseudo-header to be pre-populated before
+ * the hardware computes the TCP/UDP checksum.
+ *
+ * @param driver_name
+ *   DPDK driver name string as returned by rte_eth_dev_info_get().
+ * @return
+ *   true if a pseudo-header is required, false otherwise.
+ */
 static bool
 is_cksum_phdr_required(const char *driver_name)
 {
@@ -78,6 +95,20 @@ is_cksum_phdr_required(const char *driver_name)
     return false;
 }
 
+/**
+ * @brief Calculate the Ethernet frame overhead length for a device.
+ *
+ * If the device reports a maximum receive packet length larger than its
+ * maximum MTU, the difference is used as the overhead; otherwise the
+ * standard Ethernet header plus CRC length is returned.
+ *
+ * @param max_rx_pktlen
+ *   Maximum receive packet length reported by the device.
+ * @param max_mtu
+ *   Maximum MTU reported by the device.
+ * @return
+ *   Overhead length in bytes (Ethernet header + CRC, or device-specific value).
+ */
 static uint32_t
 eth_dev_get_overhead_len(uint32_t max_rx_pktlen, uint16_t max_mtu)
 {

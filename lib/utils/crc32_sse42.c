@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief SSE 4.2 hardware-accelerated CRC-32C implementation.
+ *
+ * Derived from crc32c.c version 1.1 by Mark Adler.  Uses the Intel
+ * CRC32 instruction for three-way parallel throughput and GF(2) matrix
+ * exponentiation to combine the partial results.  All original copyright
+ * and licence terms are preserved exactly.
+ */
+
 /*
  * Derived from crc32c.c version 1.1 by Mark Adler.
  *
@@ -38,10 +48,20 @@ __FBSDID("$FreeBSD$");
 #include <sys/kernel.h>
 #endif
 
+/**
+ * @brief Apply the CRC32 instruction to one byte using the CRC-32C polynomial.
+ *
+ * @param x
+ *   Running 32-bit CRC accumulator.
+ * @param y
+ *   Next input byte to fold in.
+ * @return
+ *   Updated CRC accumulator.
+ */
 static __inline uint32_t
 _mm_crc32_u8(uint32_t x, uint8_t y)
 {
-    /**
+    /*
      * clang (at least 3.9.[0-1]) pessimizes "rm" (y) and "m" (y)
      * significantly and "r" (y) a lot by copying y to a different
      * local variable (on the stack or in a register), so only use
@@ -54,6 +74,16 @@ _mm_crc32_u8(uint32_t x, uint8_t y)
 }
 
 #ifdef __amd64__
+/**
+ * @brief Apply the CRC32 instruction to one 64-bit word (amd64 only).
+ *
+ * @param x
+ *   Running 64-bit CRC accumulator.
+ * @param y
+ *   Next 64-bit word to fold in.
+ * @return
+ *   Updated CRC accumulator.
+ */
 static __inline uint64_t
 _mm_crc32_u64(uint64_t x, uint64_t y)
 {
@@ -61,6 +91,16 @@ _mm_crc32_u64(uint64_t x, uint64_t y)
     return (x);
 }
 #else
+/**
+ * @brief Apply the CRC32 instruction to one 32-bit word (32-bit x86 only).
+ *
+ * @param x
+ *   Running 32-bit CRC accumulator.
+ * @param y
+ *   Next 32-bit word to fold in.
+ * @return
+ *   Updated CRC accumulator.
+ */
 static __inline uint32_t
 _mm_crc32_u32(uint32_t x, uint32_t y)
 {
@@ -90,10 +130,18 @@ static uint32_t crc32c_short[4][256];
 static uint32_t crc32c_2short[4][256];
 
 /**
- * Multiply a matrix times a vector over the Galois field of two elements,
- * GF(2).  Each element is a bit in an unsigned integer.  mat must have at
- * least as many entries as the power of two for most significant one bit in
- * vec.
+ * @brief Multiply a GF(2) matrix by a vector.
+ *
+ * Each element of the matrix and vector is one bit of an unsigned integer.
+ * @p mat must contain at least as many rows as the position of the most
+ * significant set bit in @p vec.
+ *
+ * @param mat
+ *   Pointer to the matrix rows (32 uint32_t values).
+ * @param vec
+ *   Input vector as a bit-field.
+ * @return
+ *   Result of mat * vec over GF(2).
  */
 static inline uint32_t
 gf2_matrix_times(uint32_t *mat, uint32_t vec)
@@ -111,8 +159,12 @@ gf2_matrix_times(uint32_t *mat, uint32_t vec)
 }
 
 /**
- * Multiply a matrix by itself over GF(2). Both mat and square must have 32
- * rows.
+ * @brief Compute the square of a 32x32 GF(2) matrix.
+ *
+ * @param square
+ *   Output: receives mat * mat over GF(2); must point to 32 uint32_t values.
+ * @param mat
+ *   Input matrix; must point to 32 uint32_t values.
  */
 static inline void
 gf2_matrix_square(uint32_t *square, uint32_t *mat)
@@ -124,11 +176,16 @@ gf2_matrix_square(uint32_t *square, uint32_t *mat)
 }
 
 /**
- * Construct an operator to apply len zeros to a crc.  len must be a power of
- * two.  If len is not a power of two, then the result is the same as for the
- * largest power of two less than len.  The result for len == 0 is the same as
- * for len == 1.  A version of this routine could be easily written for any
- * len, but that is not needed for this application.
+ * @brief Build the GF(2) operator that advances a CRC by @p len zero bytes.
+ *
+ * @p len should be a power of two.  If it is not, the result is the same as
+ * for the largest power of two less than @p len.  The result for len == 0 is
+ * the same as for len == 1.
+ *
+ * @param even
+ *   Output: 32-element array that receives the computed operator matrix.
+ * @param len
+ *   Number of zero bytes the operator should advance over (power of two).
  */
 static void
 crc32c_zeros_op(uint32_t *even, size_t len)
@@ -171,8 +228,12 @@ crc32c_zeros_op(uint32_t *even, size_t len)
 }
 
 /**
- * Take a length and build four lookup tables for applying the zeros operator
- * for that length, byte-by-byte on the operand.
+ * @brief Populate four 256-entry lookup tables for byte-wise zero-advance of @p len.
+ *
+ * @param zeros
+ *   Output: 4 x 256 array of uint32_t receiving the lookup tables.
+ * @param len
+ *   Number of zero bytes to represent (passed to crc32c_zeros_op()).
  */
 static void
 crc32c_zeros(uint32_t zeros[][256], size_t len)
@@ -190,7 +251,14 @@ crc32c_zeros(uint32_t zeros[][256], size_t len)
 }
 
 /**
- * Apply the zeros operator table to crc.
+ * @brief Advance a CRC over a block of zero bytes using pre-computed tables.
+ *
+ * @param zeros
+ *   4 x 256 lookup tables produced by crc32c_zeros().
+ * @param crc
+ *   Current CRC value to advance.
+ * @return
+ *   CRC value after advancing over the block of zeros the tables represent.
  */
 static inline uint32_t
 crc32c_shift(uint32_t zeros[][256], uint32_t crc)
@@ -200,7 +268,11 @@ crc32c_shift(uint32_t zeros[][256], uint32_t crc)
 }
 
 /**
- * Initialize tables for shifting crcs.
+ * @brief Initialise the CRC-32C shift tables.
+ *
+ * Populates the four lookup-table sets used by the three-way parallel CRC
+ * computation.  Called automatically at startup when USERSPACE_TESTING is
+ * defined (via a constructor attribute) or explicitly from kernel SYSINIT.
  */
 static void
 #ifdef USERSPACE_TESTING
@@ -218,7 +290,20 @@ SYSINIT(crc32c_sse42, SI_SUB_LOCK, SI_ORDER_ANY, crc32c_init_hw, NULL);
 #endif
 
 /**
- * Compute CRC-32C using the Intel hardware instruction.
+ * @brief Compute CRC-32C using Intel SSE 4.2 hardware instructions.
+ *
+ * Uses three-way parallel CRC32 execution and GF(2) shift tables to hide
+ * the 3-cycle latency of the CRC32 instruction on Nehalem/Westmere/Sandy
+ * Bridge/Ivy Bridge micro-architectures.
+ *
+ * @param crc
+ *   Initial CRC value (use 0 to start a new computation).
+ * @param buf
+ *   Pointer to the input data buffer.
+ * @param len
+ *   Number of bytes to process.
+ * @return
+ *   CRC-32C checksum of the input buffer.
  */
 #ifdef USERSPACE_TESTING
 uint32_t sse42_crc32c(uint32_t, const unsigned char *, unsigned);

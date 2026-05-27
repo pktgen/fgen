@@ -2,6 +2,15 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief FGEN frame generator test application implementation.
+ *
+ * Parses command-line options, loads frame definitions from strings or files,
+ * optionally writes the generated frames to a PCAP file, and decodes each
+ * frame for display.
+ */
+
 #include <stdio.h>             // for size_t, EOF, NULL
 #include <getopt.h>            // for getopt_long, option
 #include <fgen_mmap.h>         // for MMAP_HUGEPAGE_4KB, MMAP_HUGEPAGE_2MB
@@ -22,17 +31,23 @@
 
 #include "fgen_test.h"
 
+/** @brief Maximum number of inline FGEN frame strings accepted on the command line. */
 #define MAX_FGEN_STRINGS 16
+/** @brief Maximum number of FGEN frame definition files accepted on the command line. */
 #define MAX_FGEN_FILES 16
+
+/**
+ * @brief Runtime state for the fgen test application.
+ */
 typedef struct {
-    char *fgen_strings[MAX_FGEN_STRINGS];
-    char *fgen_files[MAX_FGEN_FILES];
-    int fgen_string_cnt;
-    int fgen_file_cnt;
-    pcap_t *pcap;
-    pcap_dumper_t *pcap_dumper;
-    char *pcap_filename;
-    int verbose;
+    char *fgen_strings[MAX_FGEN_STRINGS]; /**< Array of inline frame definition strings. */
+    char *fgen_files[MAX_FGEN_FILES];     /**< Array of frame definition file paths. */
+    int fgen_string_cnt;                  /**< Number of strings stored in fgen_strings. */
+    int fgen_file_cnt;                    /**< Number of files stored in fgen_files. */
+    pcap_t *pcap;                         /**< libpcap handle used for PCAP output. */
+    pcap_dumper_t *pcap_dumper;           /**< libpcap dump handle for writing packets. */
+    char *pcap_filename;                  /**< Output PCAP file path. */
+    int verbose;                          /**< Non-zero to enable verbose output. */
 } test_info_t;
 
 static test_info_t *info;
@@ -80,6 +95,14 @@ static const char *pkt_data_string = {
 };
 // clang-format on
 
+/**
+ * @brief Append a frame definition file path to the global file list.
+ *
+ * @param filename
+ *   Path of the FGEN frame definition file to add.
+ * @return
+ *   0 on success, -1 if the maximum file count has been reached.
+ */
 static int
 add_file(char *filename)
 {
@@ -90,6 +113,14 @@ add_file(char *filename)
     return 0;
 }
 
+/**
+ * @brief Append an inline FGEN frame definition string to the global string list.
+ *
+ * @param str
+ *   Null-terminated frame definition string to add.
+ * @return
+ *   0 on success, -1 if the maximum string count has been reached.
+ */
 static int
 add_string(char *str)
 {
@@ -100,6 +131,15 @@ add_string(char *str)
     return 0;
 }
 
+/**
+ * @brief Open and initialise the output PCAP dump file.
+ *
+ * Creates a dead pcap handle for Ethernet (DLT_EN10MB), removes any existing
+ * file with the configured name, opens the dumper, and sets permissions to 0666.
+ *
+ * @return
+ *   0 on success.
+ */
 static int
 _open_pcap(void)
 {
@@ -114,6 +154,22 @@ _open_pcap(void)
     return 0;
 }
 
+/**
+ * @brief Create the frame generator, load frames, decode and optionally dump to PCAP.
+ *
+ * Loads all configured file and string frame definitions into a new fgen_t
+ * instance, decodes each frame for display, and optionally writes the raw
+ * frame bytes to the configured PCAP output file.
+ *
+ * @param tst
+ *   Pointer to the active test info structure (unused).
+ * @param create_pcap
+ *   When true, write each generated frame to the PCAP dump file.
+ * @param flags
+ *   Flags passed to fgen_create() (e.g. FGEN_VERBOSE, FGEN_DUMP_DATA).
+ * @return
+ *   0 on success, -1 on any error.
+ */
 static int
 fgen_start(tst_info_t *tst __fgen_unused, bool create_pcap, int flags)
 {
@@ -193,6 +249,12 @@ leave:
     return -1;
 }
 
+/**
+ * @brief Print command-line usage information to standard output.
+ *
+ * @param argv0
+ *   The name of the executable (argv[0]).
+ */
 static void
 usage(char *argv0)
 {
@@ -211,6 +273,19 @@ usage(char *argv0)
     printf("\n");
 }
 
+/**
+ * @brief Program entry point for the FGEN test application.
+ *
+ * Parses command-line options, loads frame definitions, runs the frame
+ * generator test, and reports the result.
+ *
+ * @param argc
+ *   Argument count.
+ * @param argv
+ *   Argument vector.
+ * @return
+ *   0 on success, non-zero on failure.
+ */
 int
 main(int argc, char **argv)
 {

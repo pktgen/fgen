@@ -6,20 +6,18 @@
 #define _FGEN_BYTEORDER_H_
 
 /**
- * @file
+ * @file fgen_byteorder.h
+ * @brief Endian-annotated integer typedefs for portable network code.
  *
- * This file defines generic types for values with a specific endianness.
+ * The following types should be used when handling values according to a
+ * specific byte ordering, which may differ from that of the host CPU.
+ * Libraries, public APIs, and applications are encouraged to use them for
+ * documentation purposes.
  */
 
 #include <stdint.h>
 #include <endian.h>
-/*
- * The following types should be used when handling values according to a
- * specific byte ordering, which may differ from that of the host CPU.
- *
- * Libraries, public APIs and applications are encouraged to use them for
- * documentation purposes.
- */
+
 typedef uint16_t fgen_be16_t; /**< 16-bit big-endian value. */
 typedef uint32_t fgen_be32_t; /**< 32-bit big-endian value. */
 typedef uint64_t fgen_be64_t; /**< 64-bit big-endian value. */

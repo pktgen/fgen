@@ -2,6 +2,12 @@
  * Copyright(c) 2023-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief pktperf main application: DPDK initialisation, per-lcore Rx/Tx loops,
+ *        thread launch, and the program entry point.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +34,21 @@
 
 txpkts_info_t *info;
 
+/**
+ * @brief rte_mempool_obj_iter() callback that writes a test packet into each mbuf.
+ *
+ * Called once per mbuf in the TX pool; constructs the packet payload and sets
+ * the mbuf metadata (data_len, pkt_len, port, etc.).
+ *
+ * @param mp
+ *   The mempool that owns this object.
+ * @param opaque
+ *   Pointer to the l2p_lport_t for the lcore initialising the pool.
+ * @param obj
+ *   Pointer to the rte_mbuf to initialise.
+ * @param obj_idx
+ *   Index of this object within the pool (unused).
+ */
 static __inline__ void
 mbuf_iterate_cb(struct rte_mempool *mp, void *opaque, void *obj, unsigned obj_idx __rte_unused)
 {
@@ -45,6 +66,18 @@ mbuf_iterate_cb(struct rte_mempool *mp, void *opaque, void *obj, unsigned obj_id
     m->ol_flags = 0;
 }
 
+/**
+ * @brief Drain the Rx queue for @p lport and update receive statistics.
+ *
+ * @param lport
+ *   Lcore/port context identifying the port and Rx queue to poll.
+ * @param mbufs
+ *   Caller-provided mbuf pointer array used as the receive burst buffer.
+ * @param n_mbufs
+ *   Maximum number of packets to receive in one burst.
+ * @param curr_tsc
+ *   TSC timestamp captured before calling this function (used for timing).
+ */
 static __inline__ void
 do_rx_process(l2p_lport_t *lport, struct rte_mbuf **mbufs, uint32_t n_mbufs, uint64_t curr_tsc)
 {
@@ -67,6 +100,21 @@ do_rx_process(l2p_lport_t *lport, struct rte_mbuf **mbufs, uint32_t n_mbufs, uin
     }
 }
 
+/**
+ * @brief Transmit a burst of packets from the TX mempool and update statistics.
+ *
+ * Acquires @p n_mbufs mbufs directly from the pool (bypassing pktmbuf to avoid
+ * altering pre-built packet data), sends them, and retries until all are sent.
+ *
+ * @param lport
+ *   Lcore/port context identifying the port and Tx queue to use.
+ * @param mbufs
+ *   Caller-provided mbuf pointer array used as the transmit burst buffer.
+ * @param n_mbufs
+ *   Number of packets to transmit in this burst.
+ * @param curr_tsc
+ *   TSC timestamp captured before calling this function (used for timing).
+ */
 static __inline__ void
 do_tx_process(l2p_lport_t *lport, struct rte_mbuf **mbufs, uint16_t n_mbufs, uint64_t curr_tsc)
 {
@@ -99,7 +147,11 @@ do_tx_process(l2p_lport_t *lport, struct rte_mbuf **mbufs, uint16_t n_mbufs, uin
         c->q_no_txmbufs[tx_qid]++;
 }
 
-/* main processing loop */
+/**
+ * @brief Rx-only processing loop executed by lcores assigned LCORE_MODE_RX.
+ *
+ * Continuously drains the Rx queue until force_quit is set.
+ */
 static void
 rx_loop(void)
 {
@@ -119,6 +171,12 @@ rx_loop(void)
               lport->rx_qid);
 }
 
+/**
+ * @brief Tx-only processing loop executed by lcores assigned LCORE_MODE_TX.
+ *
+ * Initialises the TX mempool on first entry, then paces TX bursts to the
+ * configured rate until force_quit is set.
+ */
 static void
 tx_loop(void)
 {
@@ -158,6 +216,12 @@ tx_loop(void)
               lport->tx_qid);
 }
 
+/**
+ * @brief Combined Rx/Tx processing loop for lcores assigned LCORE_MODE_BOTH.
+ *
+ * Drains the Rx queue on every iteration and paces TX bursts at the configured
+ * rate until force_quit is set.
+ */
 static void
 rxtx_loop(void)
 {
@@ -200,6 +264,16 @@ rxtx_loop(void)
               lport->rx_qid, lport->tx_qid);
 }
 
+/**
+ * @brief DPDK lcore entry point; dispatches to the correct Rx/Tx loop.
+ *
+ * Launched on every worker lcore via rte_eal_mp_remote_launch().
+ *
+ * @param dummy
+ *   Unused; required by the rte_eal_remote_launch() callback signature.
+ * @return
+ *   0 on normal exit, EXIT_FAILURE if the lcore has no valid port assignment.
+ */
 static int
 txpkts_launch_one_lcore(__rte_unused void *dummy)
 {
@@ -226,6 +300,14 @@ txpkts_launch_one_lcore(__rte_unused void *dummy)
     return 0;
 }
 
+/**
+ * @brief Signal handler for SIGINT and SIGTERM.
+ *
+ * Sets info->force_quit to true so that all processing loops exit cleanly.
+ *
+ * @param signum
+ *   Signal number received (SIGINT or SIGTERM).
+ */
 static void
 signal_handler(int signum)
 {
@@ -235,6 +317,19 @@ signal_handler(int signum)
     }
 }
 
+/**
+ * @brief Initialise DPDK EAL, count available ports, and parse application arguments.
+ *
+ * Also installs signal handlers for SIGINT/SIGTERM and seeds the random
+ * number generator.
+ *
+ * @param argc
+ *   Full argument count as received by main().
+ * @param argv
+ *   Full argument vector as received by main().
+ * @return
+ *   0 on success, EXIT_FAILURE on any error.
+ */
 static int
 initialize_dpdk(int argc, char **argv)
 {
@@ -260,6 +355,16 @@ initialize_dpdk(int argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief Launch all worker lcore threads and run the statistics display loop.
+ *
+ * Scrolls the console, launches one thread per worker lcore, periodically
+ * calls print_stats(), waits for all workers to finish, stops and closes all
+ * ports, and calls rte_eal_cleanup().
+ *
+ * @return
+ *   Return value of rte_eal_cleanup() (0 on success).
+ */
 static int
 launch_lcore_threads(void)
 {
@@ -296,6 +401,14 @@ launch_lcore_threads(void)
     return rte_eal_cleanup();
 }
 
+/**
+ * @brief Allocate and zero-initialise the global txpkts_info_t structure.
+ *
+ * Also initialises the per-port spinlocks and marks all port IDs as invalid.
+ *
+ * @return
+ *   Pointer to the newly allocated structure, or NULL on failure.
+ */
 static txpkts_info_t *
 info_alloc(void)
 {
@@ -319,6 +432,19 @@ info_alloc(void)
     return txinfo;
 }
 
+/**
+ * @brief pktperf application entry point.
+ *
+ * Allocates application state, initialises DPDK, and runs the lcore thread
+ * loop.
+ *
+ * @param argc
+ *   Argument count.
+ * @param argv
+ *   Argument vector.
+ * @return
+ *   EXIT_SUCCESS on clean exit, EXIT_FAILURE on any error.
+ */
 int
 main(int argc, char **argv)
 {

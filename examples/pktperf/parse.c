@@ -2,6 +2,15 @@
  * Copyright(c) 2023-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief pktperf command-line argument parsing and configuration.
+ *
+ * Implements parse_configuration(), which processes all application arguments
+ * (burst size, packet size, TX rate, descriptors, lcore/port mappings, etc.),
+ * creates mempool instances, and drives port setup.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +70,12 @@ static const struct option lgopts[] = {
 
 static const char *short_options = "t:b:s:r:d:m:T:M:F:f:Pjvhtu";
 
-/* display usage */
+/**
+ * @brief Print application usage to stdout and exit.
+ *
+ * @param err
+ *   Exit code passed to exit().
+ */
 void
 usage(int err)
 {
@@ -89,6 +103,24 @@ usage(int err)
     exit(err);
 }
 
+/**
+ * @brief Create a named pktmbuf mempool for a given lcore/port pair.
+ *
+ * The pool is allocated on the NUMA node of @p pid.
+ *
+ * @param type
+ *   Label string used in the pool name (e.g. "Rx" or "Tx").
+ * @param lid
+ *   Lcore ID; used in the pool name for uniqueness.
+ * @param pid
+ *   Port ID; determines the NUMA socket for allocation.
+ * @param nb_mbufs
+ *   Total number of mbufs in the pool.
+ * @param cache_size
+ *   Per-lcore cache size.
+ * @return
+ *   Pointer to the created rte_mempool, or NULL on failure.
+ */
 static struct rte_mempool *
 create_pktmbuf_pool(const char *type, uint16_t lid, uint16_t pid, uint32_t nb_mbufs,
                     uint32_t cache_size)
@@ -107,6 +139,22 @@ create_pktmbuf_pool(const char *type, uint16_t lid, uint16_t pid, uint32_t nb_mb
     return mp;
 }
 
+/**
+ * @brief Parse a core range string and assign lcores to the given port in @p mode.
+ *
+ * Accepts a single core ID ("2") or a hyphen-separated range ("2-4").
+ * For each lcore in the range, allocates an l2p_lport_t, assigns the port and
+ * mode, and creates Rx/Tx mempools if they do not yet exist.
+ *
+ * @param port
+ *   Port to attach the parsed lcores to.
+ * @param cores
+ *   Core specification string (e.g. "2" or "2-4").
+ * @param mode
+ *   LCORE_MODE_RX, LCORE_MODE_TX, or LCORE_MODE_BOTH.
+ * @return
+ *   Number of lcores assigned on success, EXIT_FAILURE on error.
+ */
 static int
 parse_cores(l2p_port_t *port, const char *cores, int mode)
 {
@@ -203,6 +251,18 @@ parse_cores(l2p_port_t *port, const char *cores, int mode)
     return num_cores;
 }
 
+/**
+ * @brief Parse a single lcore-to-port/queue mapping string.
+ *
+ * The expected format is "[Rx-Cores:Tx-Cores].port" where the lcore parts are
+ * accepted by parse_cores(). If only one lcore group is specified before the
+ * dot, that group handles both Rx and Tx (LCORE_MODE_BOTH).
+ *
+ * @param map
+ *   Null-terminated mapping string (e.g. "2:3.0" or "2.0").
+ * @return
+ *   EXIT_SUCCESS on success, EXIT_FAILURE on any parse error.
+ */
 static int
 parse_mapping(const char *map)
 {
@@ -264,6 +324,13 @@ parse_mapping(const char *map)
     return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Clamp and validate all configuration values after argument parsing.
+ *
+ * Applies default values to out-of-range fields, recomputes mbuf_count to
+ * account for descriptors and cache sizes, and prints an error and calls
+ * usage() if any required setting (e.g. port mappings) is missing.
+ */
 static void
 validate_args(void)
 {
@@ -322,7 +389,19 @@ validate_args(void)
     }
 }
 
-/* Parse the argument given on the command line of the application */
+/**
+ * @brief Parse application command-line arguments and populate the global info structure.
+ *
+ * Processes all short and long options, storing results in the global @c info
+ * structure. Calls validate_args() at the end to apply bounds and defaults.
+ *
+ * @param argc
+ *   Argument count remaining after EAL arguments have been consumed.
+ * @param argv
+ *   Argument vector (points past EAL arguments).
+ * @return
+ *   Index of the first non-option argument on success, EXIT_FAILURE on error.
+ */
 static int
 parse_args(int argc, char **argv)
 {
@@ -486,6 +565,19 @@ parse_args(int argc, char **argv)
     return ret;
 }
 
+/**
+ * @brief Top-level configuration entry point: parse arguments, set up mappings and ports.
+ *
+ * Calls parse_args(), processes all stored mapping strings via parse_mapping(),
+ * calls port_setup() for every discovered port, and creates the FGEN instance.
+ *
+ * @param argc
+ *   Argument count remaining after EAL arguments have been consumed.
+ * @param argv
+ *   Argument vector (points past EAL arguments).
+ * @return
+ *   0 on success, EXIT_FAILURE on any error.
+ */
 int
 parse_configuration(int argc, char **argv)
 {

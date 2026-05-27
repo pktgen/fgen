@@ -2,17 +2,20 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief FGEN test helper: start/end/summary lifecycle and assertion macros.
+ *
+ * Provides tst_info_t, tst_start(), tst_end(), tst_summary(), and a set of
+ * TST_ASSERT_* macros used throughout the test suite.
+ */
+
 #ifndef _TESTING_INFO_H_
 #define _TESTING_INFO_H_
 
 #include <stdbool.h>        // for true, bool, false
 #include <stddef.h>         // for NULL
 #include <stdint.h>         // for uint32_t
-/**
- * @file
- * FGEN Testing Info
- *
- */
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,16 +26,22 @@ extern "C" {
 /** An exit code of 77 indicates a test is skipped */
 #define EXIT_SKIPPED 77
 
+/**
+ * @brief Result codes passed to tst_end() to record pass/fail/skip status.
+ */
 enum {
     TST_FAILED = 0, /**< used for tst_end() when a test fails */
     TST_PASSED,     /**< used for tst_end() when a test passes */
     TST_SKIPPED,    /**< used for tst_end() when a test is skipped */
 };
 
+/**
+ * @brief Per-test state allocated by tst_start() and freed by tst_end().
+ */
 typedef struct {
-    char *name; /**< Name of the test fgen_strdup'ed */
-    int lid;    /**< lcore id */
-    int sid;    /**< socket id */
+    char *name; /**< Name of the test (duplicated with strdup). */
+    int lid;    /**< Lcore ID on which the test is running. */
+    int sid;    /**< NUMA socket ID on which the test is running. */
 } tst_info_t;
 
 /**
@@ -82,20 +91,52 @@ tst_info_t *tst_start(const char *name);
 void tst_end(tst_info_t *tst, int result);
 
 /**
- * The following functions are used for colorful logging
- *
- * Also prepend the message with one of PASS/FAIL/INFO/SKIP strings.
+ * @brief Print a coloured PASS log line prefixed with "PASS - TEST:".
  *
  * @param fmt
- *   printf like format
+ *   printf-like format string.
  * @param ...
- *   variable length arguments
+ *   Variable-length arguments matching @p fmt.
  */
 void tst_ok(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0)));
+
+/**
+ * @brief Print a coloured FAIL log line prefixed with "FAIL - TEST:".
+ *
+ * @param fmt
+ *   printf-like format string.
+ * @param ...
+ *   Variable-length arguments matching @p fmt.
+ */
 void tst_error(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0)));
+
+/**
+ * @brief Print a coloured INFO log line prefixed with "INFO - TEST:".
+ *
+ * @param fmt
+ *   printf-like format string.
+ * @param ...
+ *   Variable-length arguments matching @p fmt.
+ */
 void tst_info(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0)));
+
+/**
+ * @brief Print a coloured SKIP log line prefixed with "SKIP - TEST:".
+ *
+ * @param fmt
+ *   printf-like format string.
+ * @param ...
+ *   Variable-length arguments matching @p fmt.
+ */
 void tst_skip(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0)));
 
+/**
+ * @brief Assert @p cond; print @p msg and return void on failure.
+ *
+ * @param cond   Condition that must be true.
+ * @param msg    printf-style failure message.
+ * @param ...    Optional arguments for @p msg.
+ */
 #define TST_ASSERT_RETURN(cond, msg, ...)                                                   \
     do {                                                                                    \
         if (!(cond)) {                                                                      \
@@ -105,6 +146,14 @@ void tst_skip(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0))
         }                                                                                   \
     } while (0)
 
+/**
+ * @brief Assert @p cond; print @p msg and goto @p lbl on failure.
+ *
+ * @param cond   Condition that must be true.
+ * @param msg    printf-style failure message.
+ * @param lbl    Label to jump to on assertion failure.
+ * @param ...    Optional arguments for @p msg.
+ */
 #define TST_ASSERT_GOTO(cond, msg, lbl, ...)                                                \
     do {                                                                                    \
         if (!(cond)) {                                                                      \
@@ -114,6 +163,13 @@ void tst_skip(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0))
         }                                                                                   \
     } while (0)
 
+/**
+ * @brief Assert @p cond; print @p msg and return -1 on failure.
+ *
+ * @param cond   Condition that must be true.
+ * @param msg    printf-style failure message.
+ * @param ...    Optional arguments for @p msg.
+ */
 #define TST_ASSERT(cond, msg, ...)                                                          \
     do {                                                                                    \
         if (!(cond)) {                                                                      \
@@ -123,6 +179,15 @@ void tst_skip(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0))
         }                                                                                   \
     } while (0)
 
+/**
+ * @brief Assert @p cond; call @p _function(@p _arg) and return -1 on failure.
+ *
+ * @param cond       Condition that must be true.
+ * @param msg        printf-style failure message.
+ * @param _function  Cleanup function to call before returning.
+ * @param _arg       Argument passed to @p _function.
+ * @param ...        Optional arguments for @p msg.
+ */
 #define TST_ASSERT_AND_CLEANUP(cond, msg, _function, _arg, ...)                             \
     do {                                                                                    \
         if (!(cond)) {                                                                      \
@@ -133,33 +198,45 @@ void tst_skip(const char *fmt, ...) __attribute__((__format__(__printf__, 1, 0))
         }                                                                                   \
     } while (0)
 
+/** @brief Assert @p a == @p b; return -1 on failure. */
 #define TST_ASSERT_EQUAL(a, b, msg, ...) TST_ASSERT(a == b, msg, ##__VA_ARGS__)
 
+/** @brief Assert @p a != @p b; return -1 on failure. */
 #define TST_ASSERT_NOT_EQUAL(a, b, msg, ...) TST_ASSERT(a != b, msg, ##__VA_ARGS__)
 
+/** @brief Assert @p val == 0; return -1 on failure. */
 #define TST_ASSERT_SUCCESS(val, msg, ...) TST_ASSERT(val == 0, msg, ##__VA_ARGS__)
 
+/** @brief Assert @p val != 0; return -1 on failure. */
 #define TST_ASSERT_FAIL(val, msg, ...) TST_ASSERT(val != 0, msg, ##__VA_ARGS__)
 
+/** @brief Assert @p val == NULL; return -1 on failure. */
 #define TST_ASSERT_NULL(val, msg, ...) TST_ASSERT(val == NULL, msg, ##__VA_ARGS__)
 
+/** @brief Assert @p val != NULL; return -1 on failure. */
 #define TST_ASSERT_NOT_NULL(val, msg, ...) TST_ASSERT(val != NULL, msg, ##__VA_ARGS__)
 
+/** @brief Assert @p a == @p b; run cleanup and return -1 on failure. */
 #define TST_ASSERT_EQUAL_AND_CLEANUP(a, b, msg, _function, _arg, ...) \
     TST_ASSERT_AND_CLEANUP(a == b, msg, _function, _arg, ##__VA_ARGS__)
 
+/** @brief Assert @p a != @p b; run cleanup and return -1 on failure. */
 #define TST_ASSERT_NOT_EQUAL_AND_CLEANUP(a, b, msg, _function, _arg, ...) \
     TST_ASSERT_AND_CLEANUP(a != b, msg, _function, _arg, ##__VA_ARGS__)
 
+/** @brief Assert @p val == 0; run cleanup and return -1 on failure. */
 #define TST_ASSERT_SUCCESS_AND_CLEANUP(val, msg, _function, _arg, ...) \
     TST_ASSERT_AND_CLEANUP(val == 0, msg, _function, _arg, ##__VA_ARGS__)
 
+/** @brief Assert @p val != 0; run cleanup and return -1 on failure. */
 #define TST_ASSERT_FAIL_AND_CLEANUP(val, msg, _function, _arg, ...) \
     TST_ASSERT_AND_CLEANUP(val != 0, msg, _function, _arg, ##__VA_ARGS__)
 
+/** @brief Assert @p val == NULL; run cleanup and return -1 on failure. */
 #define TST_ASSERT_NULL_AND_CLEANUP(val, msg, _function, _arg, ...) \
     TST_ASSERT_AND_CLEANUP(val == NULL, msg, _function, _arg, ##__VA_ARGS__)
 
+/** @brief Assert @p val != NULL; run cleanup and return -1 on failure. */
 #define TST_ASSERT_NOT_NULL_AND_CLEANUP(val, msg, _function, _arg, ...) \
     TST_ASSERT_AND_CLEANUP(val != NULL, msg, _function, _arg, ##__VA_ARGS__)
 

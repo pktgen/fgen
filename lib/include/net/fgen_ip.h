@@ -10,8 +10,7 @@
 
 /**
  * @file
- *
- * IP-related defines
+ * @brief IPv4 and IPv6 header definitions, checksum utilities, and related constants.
  */
 
 #include <stdint.h>
@@ -26,7 +25,7 @@ extern "C" {
 #endif
 
 /**
- * IPv4 Header
+ * @brief IPv4 header.
  */
 struct fgen_ipv4_hdr {
     uint8_t version_ihl;        /**< version and header length */
@@ -358,7 +357,7 @@ fgen_ipv4_udptcp_cksum_verify(const struct fgen_ipv4_hdr *ipv4_hdr, const void *
 }
 
 /**
- * IPv6 Header
+ * @brief IPv6 header.
  */
 struct fgen_ipv6_hdr {
     fgen_be32_t vtc_flow;    /**< IP version, traffic class & flow label. */
@@ -446,28 +445,46 @@ fgen_ipv6_udptcp_cksum(const struct fgen_ipv6_hdr *ipv6_hdr, const void *l4_hdr)
     return (uint16_t)cksum;
 }
 
-/** IPv6 fragment extension header. */
+/** @brief Bit shift for IPv6 fragment extension header More Fragments (MF) flag. */
 #define FGEN_IPV6_EHDR_MF_SHIFT 0
+/** @brief Mask for IPv6 fragment extension header More Fragments (MF) flag. */
 #define FGEN_IPV6_EHDR_MF_MASK  1
+/** @brief Bit shift for IPv6 fragment extension header Fragment Offset field. */
 #define FGEN_IPV6_EHDR_FO_SHIFT 3
+/** @brief Mask for IPv6 fragment extension header Fragment Offset field. */
 #define FGEN_IPV6_EHDR_FO_MASK  (~((1 << FGEN_IPV6_EHDR_FO_SHIFT) - 1))
+/** @brief Alignment unit for IPv6 fragment extension header Fragment Offset. */
 #define FGEN_IPV6_EHDR_FO_ALIGN (1 << FGEN_IPV6_EHDR_FO_SHIFT)
 
+/** @brief Combined mask of MF and Fragment Offset fields in an IPv6 fragment header. */
 #define FGEN_IPV6_FRAG_USED_MASK (FGEN_IPV6_EHDR_MF_MASK | FGEN_IPV6_EHDR_FO_MASK)
 
+/** @brief Extract the More Fragments (MF) bit from an IPv6 frag_data field. */
 #define FGEN_IPV6_GET_MF(x) ((x)&FGEN_IPV6_EHDR_MF_MASK)
+/** @brief Extract the Fragment Offset from an IPv6 frag_data field. */
 #define FGEN_IPV6_GET_FO(x) ((x) >> FGEN_IPV6_EHDR_FO_SHIFT)
 
+/**
+ * @brief Build the frag_data field value for an IPv6 fragment extension header.
+ *
+ * @param fo
+ *   Fragment offset value (in units of 8 bytes).
+ * @param mf
+ *   More Fragments flag (1 if more fragments follow, 0 for last fragment).
+ */
 #define FGEN_IPV6_SET_FRAG_DATA(fo, mf) (((fo)&FGEN_IPV6_EHDR_FO_MASK) | ((mf)&FGEN_IPV6_EHDR_MF_MASK))
 
+/**
+ * @brief IPv6 fragment extension header.
+ */
 struct fgen_ipv6_fragment_ext {
-    uint8_t next_header;  /**< Next header type */
-    uint8_t reserved;     /**< Reserved */
-    fgen_be16_t frag_data; /**< All fragmentation data */
-    fgen_be32_t id;        /**< Packet ID */
+    uint8_t next_header;   /**< Next header type. */
+    uint8_t reserved;      /**< Reserved. */
+    fgen_be16_t frag_data; /**< All fragmentation data (offset + MF flag). */
+    fgen_be32_t id;        /**< Packet identification value. */
 } __fgen_packed;
 
-/* IPv6 fragment extension header size */
+/** @brief Size of the IPv6 fragment extension header in bytes. */
 #define FGEN_IPV6_FRAG_HDR_SIZE sizeof(struct fgen_ipv6_fragment_ext)
 
 /**

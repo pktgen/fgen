@@ -7,8 +7,10 @@
 
 /**
  * @file
+ * @brief Simple API to dump memory in hex and ASCII formats.
  *
- * Simple API to dump out memory in a special hex format.
+ * Provides fgen_hexdump() for a traditional offset+hex+ASCII layout and
+ * fgen_memdump() for a compact colon-separated byte dump.
  */
 
 #include <stdio.h>

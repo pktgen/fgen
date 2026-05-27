@@ -2,6 +2,14 @@
  * Copyright (c) 2019-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief FGEN logging implementation.
+ *
+ * Implements the log level control, formatted log output, stack dump,
+ * and panic / exit helpers declared in fgen_log.h.
+ */
+
 #include <stdio.h>           // for fflush, vprintf, NULL, stdout
 #include <execinfo.h>        // for backtrace, backtrace_symbols
 #include <stdarg.h>          // for va_list, va_end, va_start
@@ -10,11 +18,17 @@
 #include <fgen_log.h>
 #include <fgen_stdio.h>
 
-#define MAX_LOG_BUF_SIZE 1024 /** The max size of internal buffers */
+/** @brief The max size of internal formatting buffers */
+#define MAX_LOG_BUF_SIZE 1024
 
-static uint32_t fgen_loglevel = FGEN_LOG_INFO;
+static uint32_t fgen_loglevel = FGEN_LOG_INFO; /**< Current global log level */
 
-/* Set global log level */
+/**
+ * @brief Set the global log level.
+ *
+ * @param level
+ *   Desired log level, clamped to [FGEN_LOG_EMERG, FGEN_LOG_DEBUG].
+ */
 void
 fgen_log_set_level(uint32_t level)
 {
@@ -26,6 +40,14 @@ fgen_log_set_level(uint32_t level)
         fgen_loglevel = level;
 }
 
+/**
+ * @brief Set the global log level by name string.
+ *
+ * @param log_level
+ *   Case-insensitive level name, e.g. "DEBUG", "INFO", "ERR".
+ * @return
+ *   0 on success, 1 if the string is NULL or not recognised.
+ */
 int
 fgen_log_set_level_str(char *log_level)
 {
@@ -45,15 +67,33 @@ out:
     return 1;
 }
 
-/* Get global log level */
+/**
+ * @brief Return the current global log level.
+ *
+ * @return
+ *   The current log level value.
+ */
 uint32_t
 fgen_log_get_level(void)
 {
     return fgen_loglevel;
 }
 
-/*
- * Generates a log message.
+/**
+ * @brief Generate a log message using a va_list.
+ *
+ * @param level
+ *   Log level; messages above the global level are suppressed.
+ * @param func
+ *   Name of the calling function (used in the output prefix).
+ * @param line
+ *   Source line number (used in the output prefix).
+ * @param format
+ *   printf-style format string.
+ * @param ap
+ *   Variable argument list corresponding to @p format.
+ * @return
+ *   Number of characters written on success, negative value on error.
  */
 int
 fgen_vlog(uint32_t level, const char *func, int line, const char *format, va_list ap)
@@ -86,8 +126,19 @@ fgen_vlog(uint32_t level, const char *func, int line, const char *format, va_lis
 #endif /* __clang__ */
 }
 
-/*
- * Generates a log message.
+/**
+ * @brief Generate a log message.
+ *
+ * @param level
+ *   Log level; messages above the global level are suppressed.
+ * @param func
+ *   Name of the calling function (used in the output prefix).
+ * @param line
+ *   Source line number (used in the output prefix).
+ * @param format
+ *   printf-style format string followed by variable arguments.
+ * @return
+ *   Number of characters written on success, negative value on error.
  */
 int
 fgen_log(uint32_t level, const char *func, int line, const char *format, ...)
@@ -102,8 +153,13 @@ fgen_log(uint32_t level, const char *func, int line, const char *format, ...)
     return ret;
 }
 
-/*
- * Generates a log message regardless of log level.
+/**
+ * @brief Print a message unconditionally, bypassing the log level filter.
+ *
+ * @param format
+ *   printf-style format string followed by variable arguments.
+ * @return
+ *   Number of characters written on success, negative value on error.
  */
 int
 fgen_print(const char *format, ...)
@@ -118,9 +174,12 @@ fgen_print(const char *format, ...)
     return ret;
 }
 
+/** @brief Maximum number of stack frames captured by fgen_dump_stack(). */
 #define BACKTRACE_SIZE 256
 
-/* dump the stack of the calling core */
+/**
+ * @brief Dump the call stack of the calling thread to stdout.
+ */
 void
 fgen_dump_stack(void)
 {
@@ -144,7 +203,19 @@ fgen_dump_stack(void)
     free(symb);
 }
 
-/* call abort(), it will generate a coredump if enabled */
+/**
+ * @brief Internal panic handler — do not call directly, use fgen_panic().
+ *
+ * Logs the formatted message at CRIT level, dumps the stack, then calls
+ * abort() to generate a core dump.
+ *
+ * @param funcname
+ *   Name of the function that triggered the panic.
+ * @param line
+ *   Source line number of the panic site.
+ * @param format
+ *   printf-style format string followed by variable arguments.
+ */
 void
 __fgen_panic(const char *funcname, int line, const char *format, ...)
 {
@@ -159,9 +230,18 @@ __fgen_panic(const char *funcname, int line, const char *format, ...)
     abort();
 }
 
-/*
- * Like fgen_panic this terminates the application. However, no traceback is
- * provided and no core-dump is generated.
+/**
+ * @brief Internal exit handler — do not call directly, use fgen_exit().
+ *
+ * Logs the formatted message at CRIT level then calls exit(-1).
+ * No stack trace or core dump is produced.
+ *
+ * @param func
+ *   Name of the function that triggered the exit.
+ * @param line
+ *   Source line number of the exit site.
+ * @param format
+ *   printf-style format string followed by variable arguments.
  */
 void
 __fgen_exit(const char *func, int line, const char *format, ...)

@@ -2,13 +2,35 @@
  * Copyright (c) 2023-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief Implementation of the unit test suite runner.
+ *
+ * Provides unit_test_suite_runner() which iterates over a suite's test cases,
+ * runs each enabled case with its setup/teardown hooks, and prints a summary.
+ */
+
 #include <errno.h>        // for ENOTSUP
 
 #include <fgen_stdio.h>   // for fgen_printf
 #include "test.h"
 
+/** @brief Stores the failure count from the most recently completed suite run. */
 int last_test_result;
 
+/**
+ * @brief Execute all test cases in @p suite and print a summary.
+ *
+ * Runs the suite-level setup (if any), then iterates over each test case.
+ * Enabled cases have their own setup/teardown called around the test function.
+ * Prints per-case status and a final summary table.
+ *
+ * @param suite
+ *   Pointer to the test suite to execute.
+ * @return
+ *   TEST_SUCCESS if all enabled tests passed, TEST_SKIPPED if every test was
+ *   skipped, or TEST_FAILED if at least one test failed.
+ */
 int
 unit_test_suite_runner(struct unit_test_suite *suite)
 {

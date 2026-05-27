@@ -6,10 +6,11 @@
 #define _FGEN_GETTID_H_
 
 /**
- * @file
+ * @file fgen_gettid.h
+ * @brief Portable @c gettid() wrapper for glibc versions older than 2.30.
  *
- * A gettid() wrapper is introduced in glibc 2.30. To support earlier versions
- * of glibc, this file provides a syscall wrapper.
+ * A native @c gettid() function was introduced in glibc 2.30.  To support
+ * earlier versions this header provides an equivalent syscall wrapper.
  */
 
 #ifdef __GLIBC_PREREQ
@@ -17,6 +18,14 @@
 
 #include <sys/syscall.h>
 
+/**
+ * @brief Return the calling thread's kernel thread ID.
+ *
+ * This macro is defined only when the system glibc is older than 2.30 and
+ * does not expose a native @c gettid() function.
+ *
+ * @return  Thread ID of the calling thread as a @c pid_t.
+ */
 #define gettid() syscall(SYS_gettid)
 
 #endif /* !__GLIBC_PREREQ(2, 30) */

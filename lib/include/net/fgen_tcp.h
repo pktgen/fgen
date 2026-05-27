@@ -10,8 +10,7 @@
 
 /**
  * @file
- *
- * TCP-related defines
+ * @brief TCP (Transmission Control Protocol) header and flag definitions.
  */
 
 #include <stdint.h>
@@ -23,7 +22,7 @@ extern "C" {
 #endif
 
 /**
- * TCP Header
+ * @brief TCP (Transmission Control Protocol) header.
  */
 struct fgen_tcp_hdr {
     fgen_be16_t src_port; /**< TCP source lport. */
@@ -37,17 +36,22 @@ struct fgen_tcp_hdr {
     fgen_be16_t tcp_urp;  /**< TCP urgent pointer, if any. */
 } __attribute__((__packed__));
 
-/**
- * TCP Flags
- */
-#define TCP_CWR_FLAG 0x80 /**< Congestion Window Reduced */
-#define TCP_ECE_FLAG 0x40 /**< ECN-Echo */
-#define TCP_URG_FLAG 0x20 /**< Urgent Pointer field significant */
-#define TCP_ACK_FLAG 0x10 /**< Acknowledgment field significant */
-#define TCP_PSH_FLAG 0x08 /**< Push Function */
-#define TCP_RST_FLAG 0x04 /**< Reset the connection */
-#define TCP_SYN_FLAG 0x02 /**< Synchronize sequence numbers */
-#define TCP_FIN_FLAG 0x01 /**< No more data from sender */
+/** @brief TCP flag: Congestion Window Reduced. */
+#define TCP_CWR_FLAG 0x80
+/** @brief TCP flag: ECN-Echo. */
+#define TCP_ECE_FLAG 0x40
+/** @brief TCP flag: Urgent Pointer field significant. */
+#define TCP_URG_FLAG 0x20
+/** @brief TCP flag: Acknowledgment field significant. */
+#define TCP_ACK_FLAG 0x10
+/** @brief TCP flag: Push Function. */
+#define TCP_PSH_FLAG 0x08
+/** @brief TCP flag: Reset the connection. */
+#define TCP_RST_FLAG 0x04
+/** @brief TCP flag: Synchronize sequence numbers. */
+#define TCP_SYN_FLAG 0x02
+/** @brief TCP flag: No more data from sender (FIN). */
+#define TCP_FIN_FLAG 0x01
 
 #ifdef __cplusplus
 }

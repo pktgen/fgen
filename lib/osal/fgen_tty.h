@@ -7,10 +7,11 @@
 
 /**
  * @file
- * FGEN TTY input and output support routines.
+ * @brief FGEN TTY input and output support routines.
  *
- * Setup the TTY for I/O unless it is a socket instead. These routines are used by cli and all
- * output routines for stdin/stdout as well as socket I/O handling.
+ * Manages terminal setup, window-size tracking, and raw I/O for the
+ * configured stdin/stdout file descriptors (or a substitute socket pair).
+ * All output routines and the CLI layer use these functions for terminal I/O.
  */
 
 // IWYU pragma: no_include <bits/termios-struct.h>
@@ -30,18 +31,26 @@
 extern "C" {
 #endif
 
+/** @brief Default TTY I/O buffer size in bytes. */
 #define TTY_BUFF_SIZE    1024
+/** @brief Maximum TTY command string size in bytes. */
 #define TTY_MAX_CMD_SIZE 16
 
+/**
+ * @brief Union representing the terminal window dimensions.
+ *
+ * Allows the row and column counts to be read or written atomically as a
+ * single 32-bit integer (@p val) or individually as @p nrows / @p ncols.
+ */
 typedef union {
-    int val;
+    int val;               /**< Combined row/column value for atomic access. */
     struct {
         uint16_t nrows; /**< Max number of rows. */
         uint16_t ncols; /**< Max number of columns. */
     };
 } tty_wsize_t;
 
-/** Structure to hold information about the tty */
+/** @brief Structure to hold information about the tty. */
 typedef struct {
     int flags;                       /**< Flags for tty setup and window change */
     int fd_out;                      /**< File descriptor for output data */
@@ -53,11 +62,14 @@ typedef struct {
     FGEN_ATOMIC(int_least32_t) pause; /**< Pause the update of the screen. */
 } fgen_tty_t;
 
+/**
+ * @brief Bit-flag constants for the @p fgen_tty_t::flags field.
+ */
 enum {
-    TTY_IS_INITED  = (1 << 0),
-    TTY_IS_A_TTY   = (1 << 1),
-    TTY_COLOR_ON   = (1 << 2),
-    TTY_WS_CHANGED = (1 << 8),
+    TTY_IS_INITED  = (1 << 0), /**< TTY subsystem has been initialised. */
+    TTY_IS_A_TTY   = (1 << 1), /**< Input fd is a real terminal device. */
+    TTY_COLOR_ON   = (1 << 2), /**< ANSI color output is enabled. */
+    TTY_WS_CHANGED = (1 << 8), /**< Window size has changed (SIGWINCH). */
 };
 
 extern fgen_tty_t *this_tty;
@@ -134,12 +146,18 @@ FGEN_API int tty_did_wchange(void);
 FGEN_API tty_wsize_t *tty_window_size(void);
 
 /**
- * Return the number of rows in the screen
+ * Return the number of rows in the screen.
+ *
+ * @return
+ *   The current number of terminal rows.
  */
 FGEN_API int tty_num_rows(void);
 
 /**
- * Return the number of columns in the screen
+ * Return the number of columns in the screen.
+ *
+ * @return
+ *   The current number of terminal columns.
  */
 FGEN_API int tty_num_columns(void);
 
@@ -244,6 +262,8 @@ FGEN_API int tty_fread(FILE *f, char *buf, int len);
  *
  * @param fmt
  *   The formatting string for a printf like API
+ * @return
+ *   The number of bytes written to the tty file descriptor.
  */
 FGEN_API int tty_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
@@ -254,6 +274,8 @@ FGEN_API int tty_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2
  *    The file descriptor pointer
  * @param fmt
  *   The formatting string for a printf like API
+ * @return
+ *   The number of bytes written, or -1 if @p f is NULL.
  */
 FGEN_API int tty_fprintf(FILE *f, const char *fmt, ...) __attribute__((format(printf, 2, 0)));
 

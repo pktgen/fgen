@@ -2,6 +2,12 @@
  * Copyright(c) 2023-2026 Intel Corporation
  */
 
+/**
+ * @file
+ * @brief pktperf statistics display: per-port, per-queue rate counters and
+ *        link status printed to the terminal on each timeout interval.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +27,20 @@
 
 #include <pktperf.h>
 
+/**
+ * @brief Print a named per-queue counter row plus a total column.
+ *
+ * Iterates over all active queues for the enclosing @c port variable, prints
+ * the rate value of @p cntr for each queue divided by the timeout interval,
+ * and optionally appends a newline.
+ *
+ * @param name
+ *   Row label string (up to 12 characters).
+ * @param cntr
+ *   Field name within qstats_t to display (e.g. q_ipackets).
+ * @param nl
+ *   Non-zero to append a newline after the total column.
+ */
 #define sprint(name, cntr, nl)                                                            \
     do {                                                                                  \
         qstats_t *r;                                                                      \
@@ -39,7 +59,14 @@
         fflush(stdout);                                                                   \
     } while (0)
 
-/* Print out statistics on packets dropped */
+/**
+ * @brief Clear the screen and print per-port, per-queue rate statistics.
+ *
+ * For each initialised port, computes the delta between the current and
+ * previous counter snapshots to produce rate values, then prints Rx/Tx
+ * packet rates, drop counts, and cycle timings.  Also displays global
+ * configuration parameters.
+ */
 void
 print_stats(void)
 {

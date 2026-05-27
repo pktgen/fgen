@@ -7,7 +7,10 @@
 
 /**
  * @file
- * FGEN cursor and color support for VT100 using ANSI color escape codes.
+ * @brief FGEN formatted I/O routines with VT100 color tag support.
+ *
+ * Provides printf-like output functions that interpret embedded color
+ * tags and direct output to the configured TTY file descriptor.
  */
 
 // IWYU pragma: no_include <bits/termios-struct.h>
@@ -33,11 +36,16 @@ extern "C" {
  *
  * @param fmt
  *   The formatting string for a printf like API
+ * @return
+ *   The number of bytes written to the tty, or -ENOMEM on allocation failure.
  */
 FGEN_API int fgen_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 /**
- * cursor position the text at the given location for r and c.
+ * Position the cursor then output formatted text.
+ *
+ * Moves the cursor to the given row and column before printing the
+ * formatted string to the tty file descriptor.
  *
  * @param r
  *   The row to place the text.
@@ -45,6 +53,8 @@ FGEN_API int fgen_printf(const char *fmt, ...) __attribute__((format(printf, 1, 
  *   The column to place the text.
  * @param fmt
  *   The fgen_printf() like format string.
+ * @return
+ *   The number of bytes written to the tty, or -ENOMEM on allocation failure.
  */
 FGEN_API int fgen_printf_pos(int16_t r, int16_t c, const char *fmt, ...)
     __attribute__((format(printf, 3, 0)));
@@ -78,7 +88,8 @@ FGEN_API int fgen_snprintf(char *buff, int len, const char *fmt, ...)
 
 /**
  * Output a string at a given row/column using printf like formatting.
- * Centering the text on the console display, using the *ncols* value
+ *
+ * Centers the text on the console display using the @p ncols value.
  *
  * @param r
  *    The row to start the print out of the string.
@@ -86,6 +97,8 @@ FGEN_API int fgen_snprintf(char *buff, int len, const char *fmt, ...)
  *    Number of columns on the line. Used to center the text on the line.
  * @param fmt
  *    The formatting string to use to print the text data.
+ * @return
+ *    The number of bytes written to the tty, or -ENOMEM on allocation failure.
  */
 FGEN_API int fgen_cprintf(int16_t r, int16_t ncols, const char *fmt, ...)
     __attribute__((format(printf, 3, 4)));

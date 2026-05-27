@@ -7,8 +7,7 @@
 
 /**
  * @file
- *
- * ARP-related defines
+ * @brief ARP-related defines and data structures.
  */
 
 // IWYU pragma: no_forward_declare fgen_mempool
@@ -22,7 +21,7 @@ extern "C" {
 #endif
 
 /**
- * ARP header IPv4 payload.
+ * @brief ARP header IPv4 payload.
  */
 struct fgen_arp_ipv4 {
     struct ether_addr arp_sha; /**< sender hardware address */
@@ -32,24 +31,24 @@ struct fgen_arp_ipv4 {
 } __fgen_packed __fgen_aligned(2);
 
 /**
- * ARP header.
+ * @brief ARP header.
  */
 struct fgen_arp_hdr {
-    uint16_t arp_hardware;  /* format of hardware address */
-#define FGEN_ARP_HRD_ETHER 1 /* ARP Ethernet address format */
+    uint16_t arp_hardware;         /**< Format of hardware address. */
+#define FGEN_ARP_HRD_ETHER 1       /**< ARP Ethernet address format. */
 
-    uint16_t arp_protocol;      /* format of protocol address */
-    uint8_t arp_hlen;           /* length of hardware address */
-    uint8_t arp_plen;           /* length of protocol address */
-    uint16_t arp_opcode;        /* ARP opcode (command) */
-#define FGEN_ARP_OP_REQUEST    1 /* request to resolve address */
-#define FGEN_ARP_OP_REPLY      2 /* response to previous request */
-#define FGEN_ARP_OP_REVREQUEST 3 /* request proto addr given hardware */
-#define FGEN_ARP_OP_REVREPLY   4 /* response giving protocol address */
-#define FGEN_ARP_OP_INVREQUEST 8 /* request to identify peer */
-#define FGEN_ARP_OP_INVREPLY   9 /* response identifying peer */
+    uint16_t arp_protocol;         /**< Format of protocol address. */
+    uint8_t arp_hlen;              /**< Length of hardware address. */
+    uint8_t arp_plen;              /**< Length of protocol address. */
+    uint16_t arp_opcode;           /**< ARP opcode (command). */
+#define FGEN_ARP_OP_REQUEST    1   /**< Request to resolve address. */
+#define FGEN_ARP_OP_REPLY      2   /**< Response to previous request. */
+#define FGEN_ARP_OP_REVREQUEST 3   /**< Request proto addr given hardware. */
+#define FGEN_ARP_OP_REVREPLY   4   /**< Response giving protocol address. */
+#define FGEN_ARP_OP_INVREQUEST 8   /**< Request to identify peer. */
+#define FGEN_ARP_OP_INVREPLY   9   /**< Response identifying peer. */
 
-    struct fgen_arp_ipv4 arp_data;
+    struct fgen_arp_ipv4 arp_data; /**< ARP IPv4-specific payload. */
 } __fgen_packed __fgen_aligned(2);
 
 #ifdef __cplusplus

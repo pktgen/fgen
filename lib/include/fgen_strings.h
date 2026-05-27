@@ -3,9 +3,8 @@
  */
 
 /**
- * @file
- *
- * String-related utility functions
+ * @file fgen_strings.h
+ * @brief String manipulation and tokenization utility functions.
  */
 
 #ifndef _FGEN_STRINGS_H_
@@ -30,9 +29,12 @@
 extern "C" {
 #endif
 
+/**
+ * @brief String-parsing limits.
+ */
 enum {
-    STR_MAX_ARGVS  = 64,  /**< Max number of args to support */
-    STR_TOKEN_SIZE = 128, /**< Token max size */
+    STR_MAX_ARGVS  = 64,  /**< Maximum number of token pointers in an argv array. */
+    STR_TOKEN_SIZE = 128, /**< Maximum number of characters in a single token. */
 };
 
 /**
@@ -345,8 +347,14 @@ fgen_stropt(const char *list, char *str, const char *delim)
 }
 
 /**
- * The function is a wrapper around strdup() and will free the previous string
- * if the pointer is present.
+ * @brief Duplicate @p newstr, freeing @p str first if it is non-NULL.
+ *
+ * This is a convenience wrapper around @c strdup() that also releases a
+ * previously allocated string so callers need not @c free() manually.
+ *
+ * @param str     Existing string to free (may be NULL).
+ * @param newstr  New string to duplicate (may be NULL, in which case NULL is returned).
+ * @return        Newly duplicated string, or NULL if @p newstr is NULL.
  */
 static __inline__ char *
 fgen_strdupf(char *str, char *newstr)

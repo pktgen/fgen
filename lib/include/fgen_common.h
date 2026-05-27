@@ -3,9 +3,8 @@
  */
 
 /**
- * @file
- *
- * Generic, commonly-used macro and inline function definitions.
+ * @file fgen_common.h
+ * @brief Generic, commonly-used macro and inline function definitions.
  */
 
 #ifndef _FGEN_COMMON_H_
@@ -29,16 +28,18 @@ extern "C" {
 #endif
 
 #ifndef typeof
+/** @brief Compatibility alias: map @c typeof to the compiler built-in. */
 #define typeof __typeof__
 #endif
 
 #ifndef asm
+/** @brief Compatibility alias: map @c asm to the compiler built-in. */
 #define asm __asm__
 #endif
 
-#define FGEN_VER_PREFIX       "FGEN"
-#define FGEN_NAME_LEN         24
-#define FGEN_CACHE_LINE_SIZE  64
+#define FGEN_VER_PREFIX       "FGEN" /**< String prefix used in version strings. */
+#define FGEN_NAME_LEN         24     /**< Maximum length of an FGEN object name (including NUL). */
+#define FGEN_CACHE_LINE_SIZE  64     /**< Cache line size in bytes. */
 
 /**
  * Helper routine to set a default value if x == y then x = z.
@@ -74,24 +75,46 @@ extern "C" {
             x = z;        \
     } while ((0))
 
-/** C extension macro for environments lacking C11 features. */
+/**
+ * @brief C extension macro for environments lacking C11 features.
+ *
+ * Expands to @c __extension__ when the compiler does not advertise C11,
+ * allowing use of C11 constructs without triggering pedantic warnings.
+ */
 #if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L
 #define FGEN_STD_C11 __extension__
 #else
 #define FGEN_STD_C11
 #endif
 
-typedef uint64_t unaligned_uint64_t;
-typedef uint32_t unaligned_uint32_t;
-typedef uint16_t unaligned_uint16_t;
+typedef uint64_t unaligned_uint64_t; /**< Unaligned 64-bit unsigned integer. */
+typedef uint32_t unaligned_uint32_t; /**< Unaligned 32-bit unsigned integer. */
+typedef uint16_t unaligned_uint16_t; /**< Unaligned 16-bit unsigned integer. */
 
+/** @brief Marks a symbol as part of the public ABI (default ELF visibility). */
 #define FGEN_API __attribute__((visibility("default")))
 
 #ifdef FGEN_BUILD_SHARED_LIBS
+/**
+ * @brief Declare a non-default symbol version for a shared-library function.
+ *
+ * @param internal  The internal (mangled) symbol name.
+ * @param api       The public API symbol name.
+ * @param ver       The version string (e.g. @c FGEN_1.0).
+ */
 #define FUNCTION_VERSION(internal, api, ver) __asm__(".symver " #internal ", " #api "@" #ver)
+/**
+ * @brief Declare the default symbol version for a shared-library function.
+ *
+ * @param internal  The internal (mangled) symbol name.
+ * @param api       The public API symbol name.
+ * @param ver       The version string (e.g. @c FGEN_1.0).
+ */
 #define DEFAULT_VERSION(internal, api, ver)  __asm__(".symver " #internal ", " #api "@@" #ver)
 #else
+/** @brief No-op when building a static library. */
 #define FUNCTION_VERSION(internal, api, ver)
+/** @brief No-op when building a static library. */
 #define DEFAULT_VERSION(internal, api, ver)
 #endif
 
@@ -116,7 +139,7 @@ typedef uint16_t unaligned_uint16_t;
  */
 #define __fgen_packed __attribute__((__packed__))
 
-/******* Macro to mark functions and fields scheduled for removal *****/
+/** @brief Marks a function or field as deprecated; generates a compiler warning on use. */
 #define __fgen_deprecated __attribute__((__deprecated__))
 
 /**
@@ -124,32 +147,65 @@ typedef uint16_t unaligned_uint16_t;
  */
 #define __fgen_weak __attribute__((__weak__))
 
-/*********** Macros to eliminate unused variable warnings ********/
-
 /**
- * short definition to mark a function parameter unused
+ * @brief Marks a function parameter or variable as intentionally unused,
+ *        suppressing compiler warnings.
  */
 #define __fgen_unused __attribute__((__unused__))
 
 /**
- * definition to mark a variable or function parameter as used so
- * as to avoid a compiler warning
+ * @brief Suppresses unused-variable compiler warnings by casting @p x to void.
+ *
+ * @param x  The variable or expression to mark as used.
  */
 #define FGEN_SET_USED(x) (void)(x)
 
+/**
+ * @brief Round @p _x up to the next multiple of @p _y.
+ *
+ * @param _x  Value to round up.
+ * @param _y  Granularity (need not be a power of two).
+ */
 #define fgen_roundup(_x, _y) ((((_x) + ((_y)-1)) / (_y)) * (_y))
+/**
+ * @brief Count trailing zero bits in @p _v.
+ *
+ * @param _v  Integer value (must not be zero).
+ */
 #define fgen_ctz(_v)         __builtin_ctz(_v)
+/**
+ * @brief Return the number of bits required to represent the prefix of @p _v.
+ *
+ * @param _v  Integer value.
+ */
 #define fgen_prefixbits(_v)  ((__typeof__(_v))(sizeof(_v) * 8) - fgen_ctz(_v))
+/**
+ * @brief Return the minimum number of bytes needed to store @p _v.
+ *
+ * @param _v  Integer value.
+ */
 #define fgen_numbytes(_v)    ((fgen_prefixbits(_v) + 7) / 8)
 
+/** @brief Constructor/destructor priority for initialization functions. */
 #define FGEN_PRIORITY_INIT   101
+/** @brief Constructor/destructor priority for start-up functions. */
 #define FGEN_PRIORITY_START  102
+/** @brief Constructor/destructor priority for thread-setup functions. */
 #define FGEN_PRIORITY_THREAD 103
+/** @brief Constructor/destructor priority for state-management functions. */
 #define FGEN_PRIORITY_STATE  110
+/** @brief Constructor/destructor priority for class-level functions. */
 #define FGEN_PRIORITY_CLASS  120
+/** @brief Constructor/destructor priority for stack-level functions. */
 #define FGEN_PRIORITY_STACK  130
+/** @brief Lowest constructor/destructor priority (run last). */
 #define FGEN_PRIORITY_LAST   65535
 
+/**
+ * @brief Expand a symbolic priority name to its numeric constant.
+ *
+ * @param prio  Priority suffix (e.g. @c INIT, @c START, @c LAST).
+ */
 #define FGEN_PRIO(prio) FGEN_PRIORITY_##prio
 
 /**
@@ -215,27 +271,44 @@ typedef uint16_t unaligned_uint16_t;
  */
 #define FGEN_PTR_CAST(ptr, x) (x)((uintptr_t)(ptr))
 
-/*********** Macros for pointer arithmetic ********/
-
 /**
- * add a byte-value offset to a pointer
+ * @brief Add a byte-value offset to a pointer.
+ *
+ * @param ptr  Base pointer.
+ * @param x    Byte offset to add.
+ * @return     @c void* pointing @p x bytes beyond @p ptr.
  */
 #define FGEN_PTR_ADD(ptr, x) ((void *)((uintptr_t)(ptr) + (x)))
 
 /**
- * subtract a byte-value offset from a pointer
+ * @brief Subtract a byte-value offset from a pointer.
+ *
+ * @param ptr  Base pointer.
+ * @param x    Byte offset to subtract.
+ * @return     @c void* pointing @p x bytes before @p ptr.
  */
 #define FGEN_PTR_SUB(ptr, x) ((void *)((uintptr_t)ptr - (x)))
 
 /**
- * get the difference between two pointer values, i.e. how far apart
- * in bytes are the locations they point two. It is assumed that
- * ptr1 is greater than ptr2.
+ * @brief Get the byte distance between two pointers.
+ *
+ * It is assumed that @p ptr1 >= @p ptr2.
+ *
+ * @param ptr1  The higher pointer.
+ * @param ptr2  The lower pointer.
+ * @return      Byte difference (@p ptr1 - @p ptr2).
  */
 #define FGEN_PTR_DIFF(ptr1, ptr2) ((uintptr_t)(ptr1) - (uintptr_t)(ptr2))
 
 /**
- * Workaround to cast a const field of a structure to non-const type.
+ * @brief Cast a (possibly @c const) field of a structure to a different type.
+ *
+ * This is a workaround to strip @c const from a struct field without causing
+ * strict-aliasing violations.
+ *
+ * @param var    Pointer to the containing structure.
+ * @param field  Name of the field within the structure.
+ * @param type   Target pointer type to cast the field to.
  */
 #define FGEN_CAST_FIELD(var, field, type) \
     (*(type *)((uintptr_t)(var) + offsetof(typeof(*(var)), field)))
@@ -340,44 +413,51 @@ fgen_is_aligned(void *ptr, unsigned align)
 /*********** Macros for compile type checks ********/
 
 /**
- * Triggers an error at compilation time if the condition is true.
+ * @brief Trigger a compile-time error if @p condition is true.
+ *
+ * @param condition  A constant expression; if non-zero the build fails.
  */
 #define FGEN_BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2 * !!(condition)]))
 
 /*********** Cache line related macros ********/
 
-/** Cache line mask. */
+/** @brief Bitmask for the byte offset within a cache line. */
 #define FGEN_CACHE_LINE_MASK (FGEN_CACHE_LINE_SIZE - 1)
 
-/** Return the first cache-aligned value greater or equal to size. */
+/**
+ * @brief Round @p size up to the next cache-line boundary.
+ *
+ * @param size  Size in bytes to round up.
+ * @return      Smallest multiple of @c FGEN_CACHE_LINE_SIZE >= @p size.
+ */
 #define FGEN_CACHE_LINE_ROUNDUP(size) \
     (FGEN_CACHE_LINE_SIZE * ((size + FGEN_CACHE_LINE_SIZE - 1) / FGEN_CACHE_LINE_SIZE))
 
-/** Cache line size in terms of log2 */
+/** @brief log2 of the cache line size (6 for a 64-byte cache line). */
 #if FGEN_CACHE_LINE_SIZE == 64
 #define FGEN_CACHE_LINE_SIZE_LOG2 6
 #else
 #error "Unsupported cache line size"
 #endif
 
-/** Minimum Cache line size. */
+/** @brief Minimum cache line size in bytes. */
 #define FGEN_CACHE_LINE_MIN_SIZE 64
 
-/** Force alignment to cache line. */
+/** @brief Attribute to force alignment of a type or variable to a cache line. */
 #define __fgen_cache_aligned __fgen_aligned(FGEN_CACHE_LINE_SIZE)
 
-/** Force minimum cache line alignment. */
+/** @brief Attribute to force alignment to the minimum cache line size. */
 #define __fgen_cache_min_aligned __fgen_aligned(FGEN_CACHE_LINE_MIN_SIZE)
 
-/** Generic marker for any place in a structure. */
+/** @brief Generic zero-length marker for any position in a structure. */
 __extension__ typedef void *FGEN_MARKER[0];
-/** Marker for 1B alignment in a structure. */
+/** @brief Zero-length marker asserting 1-byte alignment at its position. */
 __extension__ typedef uint8_t FGEN_MARKER8[0];
-/** Marker for 2B alignment in a structure. */
+/** @brief Zero-length marker asserting 2-byte alignment at its position. */
 __extension__ typedef uint16_t FGEN_MARKER16[0];
-/** Marker for 4B alignment in a structure. */
+/** @brief Zero-length marker asserting 4-byte alignment at its position. */
 __extension__ typedef uint32_t FGEN_MARKER32[0];
-/** Marker for 8B alignment in a structure. */
+/** @brief Zero-length marker asserting 8-byte alignment at its position. */
 __extension__ typedef uint64_t FGEN_MARKER64[0];
 
 /**
@@ -428,7 +508,9 @@ fgen_combine64ms1b(uint64_t v)
 /*********** Macros to work with powers of 2 ********/
 
 /**
- * Macro to return 1 if n is a power of 2, 0 otherwise
+ * @brief Return 1 if @p n is a power of 2, 0 otherwise.
+ *
+ * @param n  Value to test.
  */
 #define FGEN_IS_POWER_OF_2(n) ((n) && !(((n)-1) & (n)))
 
@@ -517,7 +599,11 @@ fgen_align64prevpow2(uint64_t v)
 /*********** Macros for calculating min and max **********/
 
 /**
- * Macro to return the minimum of two numbers
+ * @brief Return the minimum of two values.
+ *
+ * @param a  First value.
+ * @param b  Second value.
+ * @return   The lesser of @p a and @p b, preserving the original type.
  */
 #define FGEN_MIN(a, b)       \
     __extension__({         \
@@ -527,7 +613,11 @@ fgen_align64prevpow2(uint64_t v)
     })
 
 /**
- * Macro to return the maximum of two numbers
+ * @brief Return the maximum of two values.
+ *
+ * @param a  First value.
+ * @param b  Second value.
+ * @return   The greater of @p a and @p b, preserving the original type.
  */
 #define FGEN_MAX(a, b)       \
     __extension__({         \
@@ -691,23 +781,34 @@ fgen_log2_u64(uint64_t v)
 }
 
 #ifndef offsetof
-/** Return the offset of a field in a structure. */
+/**
+ * @brief Return the byte offset of @p MEMBER within the structure type @p TYPE.
+ *
+ * @param TYPE    The structure type.
+ * @param MEMBER  The field name within @p TYPE.
+ */
 #define offsetof(TYPE, MEMBER) __builtin_offsetof(TYPE, MEMBER)
 #endif
 
 /**
- * Return pointer to the wrapping struct instance.
+ * @brief Return a pointer to the enclosing struct given a pointer to a member.
  *
  * Example:
- *
+ * @code
  *  struct wrapper {
  *      ...
  *      struct child c;
  *      ...
  *  };
  *
- *  struct child *x = obtain(...);
+ *  struct child   *x = obtain(...);
  *  struct wrapper *w = container_of(x, struct wrapper, c);
+ * @endcode
+ *
+ * @param ptr     Pointer to the member field.
+ * @param type    Type of the enclosing structure.
+ * @param member  Name of the member field within @p type.
+ * @return        Pointer to the enclosing structure of type @p type.
  */
 #ifndef container_of
 #define container_of(ptr, type, member)                            \
@@ -730,24 +831,45 @@ fgen_log2_u64(uint64_t v)
  */
 #define FGEN_SIZEOF_FIELD(type, field) (sizeof(((type *)0)->field))
 
-#define _FGEN_STR(x) #x
-/** Take a macro value and get a string version of it */
+#define _FGEN_STR(x) #x                  /**< @brief Internal helper: stringify without macro expansion. */
+/**
+ * @brief Stringify a macro value (expands @p x before stringification).
+ *
+ * @param x  Macro or token to convert to a string literal.
+ */
 #define FGEN_STR(x) _FGEN_STR(x)
 
 /**
- * ISO C helpers to modify format strings using variadic macros.
- * This is a replacement for the ", ## __VA_ARGS__" GNU extension.
- * An empty %s argument is appended to avoid a dangling comma.
+ * @brief ISO C helpers to construct format strings from variadic macros.
+ *
+ * These macros replace the GNU @c ", ## __VA_ARGS__" extension.  An empty
+ * @c %s argument is appended to avoid a dangling comma when the variadic
+ * list is empty.
+ *
+ * @param fmt  The printf-style format string.
+ * @param ...  Optional format arguments.
  */
 #define FGEN_FMT(fmt, ...)      fmt "%.0s", __VA_ARGS__ ""
+/** @brief Extract only the format-string head from a FGEN_FMT argument list. */
 #define FGEN_FMT_HEAD(fmt, ...) fmt
+/** @brief Extract only the variadic tail from a FGEN_FMT argument list. */
 #define FGEN_FMT_TAIL(fmt, ...) __VA_ARGS__
 
-/** Mask value of type "tp" for the first "ln" bit set. */
+/**
+ * @brief Build a bitmask of type @p tp with the least-significant @p ln bits set.
+ *
+ * @param ln  Number of bits to set (1–64).
+ * @param tp  Integer type of the resulting mask.
+ */
 #define FGEN_LEN2MASK(ln, tp) ((tp)((uint64_t)-1 >> (sizeof(uint64_t) * CHAR_BIT - (ln))))
 
-/** Number of elements in the array. */
+/**
+ * @brief Return the number of elements in a statically-sized array.
+ *
+ * @param a  Array variable (must not be a pointer).
+ */
 #define FGEN_DIM(a)     (int)(sizeof(a) / sizeof((a)[0]))
+/** @brief Alias for FGEN_DIM(): return the element count of array @p a. */
 #define fgen_countof(a) FGEN_DIM(a)
 
 /**

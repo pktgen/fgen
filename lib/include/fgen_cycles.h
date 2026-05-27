@@ -6,7 +6,8 @@
 #define _FGEN_CYCLES_H_
 
 /**
- * @file
+ * @file fgen_cycles.h
+ * @brief CPU timestamp-counter (TSC) access and time-unit conversion constants.
  */
 
 #include <fgen_common.h>
@@ -15,9 +16,9 @@
 extern "C" {
 #endif
 
-#define MS_PER_S 1000
-#define US_PER_S 1000000
-#define NS_PER_S 1000000000
+#define MS_PER_S 1000      /**< Milliseconds per second. */
+#define US_PER_S 1000000   /**< Microseconds per second. */
+#define NS_PER_S 1000000000 /**< Nanoseconds per second. */
 
 /**
  * Read and return the timestamp counter value

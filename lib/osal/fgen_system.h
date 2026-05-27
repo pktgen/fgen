@@ -7,7 +7,10 @@
 
 /**
  * @file
- * API for lcore and socket manipulation
+ * @brief API for lcore and NUMA socket queries.
+ *
+ * Provides functions to query logical core IDs, NUMA socket IDs,
+ * TSC timer frequency, and network device topology information.
  */
 
 #include <sys/syscall.h>
@@ -19,6 +22,7 @@
 extern "C" {
 #endif
 
+/** @brief Sentinel value indicating an invalid or unassigned lcore ID. */
 #define FGEN_LCORE_INVALID 0xFFFF
 
 /**

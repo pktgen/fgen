@@ -2,6 +2,14 @@
  * Copyright (c) 2019-2026 Intel Corporation.
  */
 
+/**
+ * @file
+ * @brief Implementation of FGEN formatted I/O routines with color tag support.
+ *
+ * Implements the fgen_printf family of functions that parse VT100 color
+ * tags in format strings and write the result to the configured TTY.
+ */
+
 #include <stdio.h>         // for vsnprintf, FILE
 #include <stdint.h>        // for int16_t
 #include <stdarg.h>        // for va_list, va_end, va_start

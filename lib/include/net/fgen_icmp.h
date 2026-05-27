@@ -10,8 +10,7 @@
 
 /**
  * @file
- *
- * ICMP-related defines
+ * @brief ICMP (Internet Control Message Protocol) header and related defines.
  */
 
 #include <stdint.h>
@@ -23,18 +22,19 @@ extern "C" {
 #endif
 
 /**
- * ICMP Header
+ * @brief ICMP header.
  */
 struct fgen_icmp_hdr {
-    uint8_t icmp_type;      /* ICMP packet type. */
-    uint8_t icmp_code;      /* ICMP packet code. */
-    fgen_be16_t icmp_cksum;  /* ICMP packet checksum. */
-    fgen_be16_t icmp_ident;  /* ICMP packet identifier. */
-    fgen_be16_t icmp_seq_nb; /* ICMP packet sequence number. */
+    uint8_t icmp_type;       /**< ICMP packet type. */
+    uint8_t icmp_code;       /**< ICMP packet code. */
+    fgen_be16_t icmp_cksum;  /**< ICMP packet checksum. */
+    fgen_be16_t icmp_ident;  /**< ICMP packet identifier. */
+    fgen_be16_t icmp_seq_nb; /**< ICMP packet sequence number. */
 } __attribute__((__packed__));
 
-/* ICMP packet types */
+/** @brief ICMP echo reply message type. */
 #define FGEN_IP_ICMP_ECHO_REPLY   0
+/** @brief ICMP echo request message type. */
 #define FGEN_IP_ICMP_ECHO_REQUEST 8
 
 #ifdef __cplusplus
