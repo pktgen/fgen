@@ -29,8 +29,8 @@
 #include <pktperf.h>
 
 #include <fgen.h>
-#include <fgen/fgen_stdio.h>
-#include <fgen/fgen_version.h>
+#include <fgen_stdio.h>
+#include <fgen_version.h>
 
 txpkts_info_t *info;
 
